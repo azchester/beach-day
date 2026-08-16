@@ -1,7 +1,7 @@
 # Tide Pool Tidy — Randomness and Difficulty
 
 Date: 2026-08-16  
-Location: `ai-sync/tide-pool-sort/`  
+Location: `ai-sync/beach-day/`  
 Extends: `docs/superpowers/specs/2026-08-16-tide-pool-tidy-design.md`
 
 ## Purpose
@@ -96,7 +96,7 @@ A round never contains two pieces with the same `(kind, variant, color)`. Two or
 Static `ROUNDS` item lists go away. Each difficulty has six **recipes**. A generator turns `(recipe, random)` into `items` and applies the difficulty’s pool-order policy.
 
 ```
-ai-sync/tide-pool-sort/
+ai-sync/beach-day/
   game.js             # recipes, catalog, generator, drop, advance
   app.js              # title buttons, drag/drop, cheer, play again
   index.html

@@ -1,7 +1,7 @@
 # Tide Pool Tidy — Design
 
 Date: 2026-08-16  
-Location: `ai-sync/tide-pool-sort/`  
+Location: `ai-sync/beach-day/`  
 Players: an adult and a child about to turn 4, sitting together
 
 ## Purpose
@@ -57,7 +57,7 @@ After round 6, Play again.
 Static browser game. No server, no accounts, no network, no startling sound.
 
 ```
-ai-sync/tide-pool-sort/
+ai-sync/beach-day/
   index.html
   styles.css
   app.js              # title, drag/drop, cheer, play again

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship a local browser game at `ai-sync/tide-pool-sort/` that a parent and almost-four-year-old can play together: drag beach things into sandcastle, shell, and rock tide pools.
+**Goal:** Ship a local browser game at `ai-sync/beach-day/` that a parent and almost-four-year-old can play together: drag beach things into sandcastle, shell, and rock tide pools.
 
 **Architecture:** Pure front-end. `game.js` owns rounds and drop rules (Node-testable). `app.js` owns title screen, pointer drag-and-drop, cheer, and play-again. `index.html` + `styles.css` render a Magic School Bus–feeling beach (chunky outlines, bright field-trip color) with inline SVG pieces — no network except optional Google Fonts.
 
@@ -35,8 +35,8 @@
 ### Task 1: Game rules engine
 
 **Files:**
-- Create: `ai-sync/tide-pool-sort/game.js`
-- Test: `ai-sync/tide-pool-sort/test/game.test.js`
+- Create: `ai-sync/beach-day/game.js`
+- Test: `ai-sync/beach-day/test/game.test.js`
 
 **Interfaces:**
 - Consumes: nothing
@@ -150,7 +150,7 @@ console.log(passed + " passed");
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `node /Users/aaronchester/ai-sync/tide-pool-sort/test/game.test.js`  
+Run: `node /Users/aaronchester/ai-sync/beach-day/test/game.test.js`  
 Expected: FAIL with `Cannot find module` for `game.js`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -166,7 +166,7 @@ Round 6 items: two orange shells, one orange sandcastle, one rock. No pale shell
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `node /Users/aaronchester/ai-sync/tide-pool-sort/test/game.test.js`  
+Run: `node /Users/aaronchester/ai-sync/beach-day/test/game.test.js`  
 Expected: all PASS
 
 ---

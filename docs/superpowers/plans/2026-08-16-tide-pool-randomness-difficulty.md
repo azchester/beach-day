@@ -39,8 +39,8 @@
 ### Task 1: Generator and session API
 
 **Files:**
-- Modify: `ai-sync/tide-pool-sort/test/game.test.js`
-- Modify: `ai-sync/tide-pool-sort/game.js`
+- Modify: `ai-sync/beach-day/test/game.test.js`
+- Modify: `ai-sync/beach-day/game.js`
 
 **Interfaces:**
 - Consumes: existing `drop` / `advance` behavior
@@ -304,7 +304,7 @@ console.log(passed + " passed");
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `node "/Users/aaronchester/Library/CloudStorage/GoogleDrive-azchester@gmail.com/My Drive/ai-sync/tide-pool-sort/test/game.test.js"`
+Run: `node "/Users/aaronchester/Library/CloudStorage/GoogleDrive-azchester@gmail.com/My Drive/ai-sync/beach-day/test/game.test.js"`
 
 Expected: FAIL on missing `difficulty` / `ROUND_COUNT` / `session.items` / hard two-rule via options — not on a syntax error in the test file.
 
@@ -638,7 +638,7 @@ Replace static `ROUNDS` item lists with catalog + recipes + generator. Keep the 
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `node "/Users/aaronchester/Library/CloudStorage/GoogleDrive-azchester@gmail.com/My Drive/ai-sync/tide-pool-sort/test/game.test.js"`
+Run: `node "/Users/aaronchester/Library/CloudStorage/GoogleDrive-azchester@gmail.com/My Drive/ai-sync/beach-day/test/game.test.js"`
 
 Expected: all PASS. Also run `node test/path.test.js` — still all PASS.
 
@@ -649,10 +649,10 @@ Expected: all PASS. Also run `node test/path.test.js` — still all PASS.
 ### Task 2: Difficulty screen and tidy wiring
 
 **Files:**
-- Modify: `ai-sync/tide-pool-sort/index.html`
-- Modify: `ai-sync/tide-pool-sort/app.js`
-- Modify: `ai-sync/tide-pool-sort/styles.css`
-- Modify: `ai-sync/tide-pool-sort/README.md`
+- Modify: `ai-sync/beach-day/index.html`
+- Modify: `ai-sync/beach-day/app.js`
+- Modify: `ai-sync/beach-day/styles.css`
+- Modify: `ai-sync/beach-day/README.md`
 
 **Interfaces:**
 - Consumes: Task 1 `TidePool` API
