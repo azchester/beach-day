@@ -10,13 +10,13 @@
   var STANDARD_POOLS = [
     { id: "sandcastles", label: "sandcastles", picture: "sandcastle" },
     { id: "shells", label: "shells", picture: "shell" },
-    { id: "rocks", label: "rocks", picture: "rock" }
+    { id: "rocks", label: "rocks and sticks", picture: "rock" }
   ];
 
   var ORANGE_SHELL_POOLS = [
     { id: "sandcastles", label: "sandcastles", picture: "sandcastle" },
     { id: "shells", label: "shells", picture: "orange-shell" },
-    { id: "rocks", label: "rocks", picture: "rock" }
+    { id: "rocks", label: "rocks and sticks", picture: "rock" }
   ];
 
   var CATALOG = [
@@ -34,7 +34,7 @@
     { kind: "shell", variant: "spiral", color: "orange", label: "shell" },
     { kind: "rock", variant: "pebble", color: "gray", label: "rock" },
     { kind: "rock", variant: "speckled", color: "gray", label: "rock" },
-    { kind: "rock", variant: "driftwood", color: "brown", label: "rock" }
+    { kind: "rock", variant: "driftwood", color: "brown", label: "stick" }
   ];
 
   function recipe(count, allowSpiral, lookalike, twoRule) {

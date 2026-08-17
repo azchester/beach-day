@@ -8,7 +8,18 @@
   var selectedId = null;
   var menuPick = "tidy";
   var cheerTimer = null;
+  var pathAdvanceTimer = null;
   var hopTimer = null;
+  var celebrateTimer = null;
+  var KID_IDLE = "assets/kid.png";
+  var KID_CELEBRATE = [
+    "assets/kid.png",
+    "assets/kid-cele-1.png",
+    "assets/kid-cele-2.png",
+    "assets/kid-cele-3.png",
+    "assets/kid-cele-2.png",
+    "assets/kid-cele-3.png"
+  ];
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   var menuScreen = document.getElementById("menu-screen");
@@ -26,15 +37,8 @@
   var moreGamesBtn = document.getElementById("more-games");
   var exhibits = document.getElementById("exhibits");
   var menuCrab = document.getElementById("menu-crab");
-
-  var FILL = {
-    sand: "#e8c27a",
-    orange: "#ff6a4d",
-    peach: "#f4a574",
-    cream: "#f7e6c4",
-    gray: "#8b8e98",
-    brown: "#a67c52"
-  };
+  var difficultyTitle = document.querySelector("#difficulty-screen h1");
+  var pendingGame = "tidy";
 
   function show(el) {
     el.hidden = false;
@@ -50,108 +54,80 @@
     hide(cheerEl);
     hide(playAgainBtn);
     hide(moreGamesBtn);
+    if (pathAdvanceTimer) {
+      window.clearTimeout(pathAdvanceTimer);
+      pathAdvanceTimer = null;
+    }
+    stopCelebrate();
   }
 
-  function svgWrap(inner) {
-    return (
-      '<svg class="piece-art" viewBox="0 0 80 80" aria-hidden="true">' +
-      inner +
-      "</svg>"
-    );
+  function paintKids() {
+    document.querySelectorAll("[data-kid]").forEach(function (el) {
+      el.innerHTML = '<img class="kid-art" src="' + KID_IDLE + '" alt="" draggable="false" />';
+    });
+  }
+
+  function setKidSrc(src) {
+    document.querySelectorAll(".kid-art").forEach(function (img) {
+      img.src = src;
+    });
+  }
+
+  function stopCelebrate() {
+    if (celebrateTimer) {
+      window.clearInterval(celebrateTimer);
+      celebrateTimer = null;
+    }
+    document.querySelectorAll(".cheer-kid, .path-kid, .sand-kid").forEach(function (el) {
+      el.classList.remove("is-cheering");
+    });
+    setKidSrc(KID_IDLE);
+  }
+
+  function celebrateKid() {
+    stopCelebrate();
+    var cheerKid = document.querySelector(".cheer-kid");
+    if (reduceMotion) {
+      setKidSrc(KID_CELEBRATE[KID_CELEBRATE.length - 1]);
+      return;
+    }
+    if (cheerKid) {
+      cheerKid.classList.remove("is-cheering");
+      void cheerKid.offsetWidth;
+      cheerKid.classList.add("is-cheering");
+    }
+    var i = 0;
+    setKidSrc(KID_CELEBRATE[0]);
+    celebrateTimer = window.setInterval(function () {
+      i += 1;
+      if (i >= KID_CELEBRATE.length) {
+        window.clearInterval(celebrateTimer);
+        celebrateTimer = null;
+        setKidSrc(KID_CELEBRATE[KID_CELEBRATE.length - 1]);
+        return;
+      }
+      setKidSrc(KID_CELEBRATE[i]);
+    }, 140);
+  }
+
+  function pieceSrc(kind, variant, color) {
+    return "assets/" + kind + "-" + variant + "-" + color + ".png";
   }
 
   function art(kind, variant, color) {
-    var fill = FILL[color] || FILL.sand;
-    var ink = "#1b2a4a";
-    var s = 'fill="' + fill + '" stroke="' + ink + '" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"';
-    var dark = 'fill="' + ink + '"';
-
-    if (kind === "sandcastle" && variant === "drip") {
-      return svgWrap(
-        '<ellipse cx="40" cy="70" rx="28" ry="7" ' + s + "/>" +
-          '<path d="M16 68 C18 48 28 46 32 58 C34 44 42 40 46 56 C50 42 60 46 62 66 Z" ' + s + "/>" +
-          '<circle cx="40" cy="38" r="10" ' + s + "/>" +
-          '<circle cx="28" cy="48" r="7" ' + s + "/>" +
-          '<circle cx="52" cy="50" r="7" ' + s + "/>"
-      );
-    }
-    if (kind === "sandcastle" && variant === "bucket") {
-      return svgWrap(
-        '<ellipse cx="40" cy="70" rx="24" ry="6" ' + s + "/>" +
-          '<path d="M24 68 L22 38 L58 38 L56 68 Z" ' + s + "/>" +
-          '<path d="M20 38 L28 28 L36 38 L44 28 L52 38 L60 28 L62 38 Z" ' + s + "/>" +
-          '<rect x="36" y="48" width="8" height="14" rx="2" ' + dark + "/>"
-      );
-    }
-    if (kind === "sandcastle") {
-      return svgWrap(
-        '<ellipse cx="40" cy="71" rx="28" ry="6" ' + s + "/>" +
-          '<path d="M14 68 L14 42 L26 42 L26 28 L38 28 L38 18 L42 18 L42 28 L54 28 L54 42 L66 42 L66 68 Z" ' + s + "/>" +
-          '<path d="M26 28 L30 22 L34 28 M54 28 L50 22 L46 28" fill="none" stroke="' + ink + '" stroke-width="3.2"/>' +
-          '<rect x="36" y="50" width="8" height="16" rx="2" ' + dark + "/>" +
-          '<path d="M40 18 L40 10" stroke="' + ink + '" stroke-width="3"/>' +
-          '<path d="M40 10 L50 14 L40 18 Z" fill="#ff6a4d" stroke="' + ink + '" stroke-width="2.6" stroke-linejoin="round"/>'
-      );
-    }
-    if (kind === "shell" && variant === "spiral") {
-      return svgWrap(
-        '<path d="M40 72 C22 72 16 54 22 40 C28 24 40 14 40 8 C52 16 62 30 60 46 C58 62 50 72 40 72 Z" ' + s + "/>" +
-          '<path d="M40 66 C30 64 26 52 30 42 C34 32 40 26 40 20" fill="none" stroke="' + ink + '" stroke-width="3"/>'
-      );
-    }
-    if (kind === "shell" && variant === "snail") {
-      return svgWrap(
-        '<ellipse cx="28" cy="58" rx="16" ry="8" ' + s + "/>" +
-          '<circle cx="48" cy="44" r="18" ' + s + "/>" +
-          '<path d="M48 56 C42 54 40 48 44 42 C48 36 54 38 54 44" fill="none" stroke="' + ink + '" stroke-width="3"/>' +
-          '<path d="M18 54 L12 44 M22 52 L18 40" fill="none" stroke="' + ink + '" stroke-width="3"/>' +
-          '<circle cx="12" cy="42" r="2.2" ' + dark + "/>" +
-          '<circle cx="18" cy="38" r="2.2" ' + dark + "/>"
-      );
-    }
-    if (kind === "shell") {
-      return svgWrap(
-        '<path d="M40 66 C20 66 14 44 22 30 C30 16 40 14 40 14 C40 14 50 16 58 30 C66 44 60 66 40 66 Z" ' + s + "/>" +
-          '<path d="M40 62 L24 34 M40 62 L32 30 M40 62 L40 26 M40 62 L48 30 M40 62 L56 34" fill="none" stroke="' + ink + '" stroke-width="2.8"/>'
-      );
-    }
-    if (kind === "rock" && variant === "driftwood") {
-      return svgWrap(
-        '<path d="M12 50 C22 38 34 44 48 40 C58 36 68 30 72 36 C64 46 54 52 40 56 C28 60 16 58 12 50 Z" ' + s + "/>" +
-          '<path d="M28 46 C32 40 36 38 40 36" fill="none" stroke="' + ink + '" stroke-width="2.6"/>'
-      );
-    }
-    if (kind === "rock" && variant === "speckled") {
-      return svgWrap(
-        '<ellipse cx="40" cy="42" rx="28" ry="22" ' + s + "/>" +
-          '<circle cx="30" cy="38" r="3" ' + dark + "/>" +
-          '<circle cx="48" cy="48" r="3" ' + dark + "/>" +
-          '<circle cx="52" cy="36" r="2.6" ' + dark + "/>" +
-          '<circle cx="34" cy="50" r="2.4" ' + dark + "/>"
-      );
-    }
-    return svgWrap('<ellipse cx="40" cy="42" rx="26" ry="20" ' + s + "/>");
+    return (
+      '<img class="piece-art" src="' +
+      pieceSrc(kind, variant, color) +
+      '" alt="" draggable="false" />'
+    );
   }
 
   function crabGlyph() {
-    return (
-      '<svg class="glyph" viewBox="0 0 80 80" aria-hidden="true">' +
-      '<ellipse cx="40" cy="44" rx="22" ry="15" fill="#ff6a4d" stroke="#1b2a4a" stroke-width="3.2"/>' +
-      '<path d="M22 40 L10 30 M58 40 L70 30 M20 50 L8 56 M60 50 L72 56 M26 58 L18 68 M54 58 L62 68" fill="none" stroke="#1b2a4a" stroke-width="3" stroke-linecap="round"/>' +
-      '<circle cx="32" cy="40" r="3.2" fill="#1b2a4a"/>' +
-      '<circle cx="48" cy="40" r="3.2" fill="#1b2a4a"/>' +
-      "</svg>"
-    );
+    return '<img class="glyph" src="assets/crab.png" alt="" draggable="false" />';
   }
 
   function bucketGlyph() {
-    return (
-      '<svg class="glyph" viewBox="0 0 80 80" aria-hidden="true">' +
-      '<path d="M24 30 C24 18 56 18 56 30" fill="none" stroke="#1b2a4a" stroke-width="3.2" stroke-linecap="round"/>' +
-      '<path d="M22 32 L26 64 H54 L58 32 Z" fill="#e85d4c" stroke="#1b2a4a" stroke-width="3.2" stroke-linejoin="round"/>' +
-      '<path d="M26 44 H54" fill="none" stroke="#1b2a4a" stroke-width="2.6"/>' +
-      "</svg>"
-    );
+    return '<img class="glyph" src="assets/bucket.png" alt="" draggable="false" />';
   }
 
   function poolPicture(picture) {
@@ -211,16 +187,14 @@
 
   function openGame(game) {
     hideCheer();
-    if (game === "path") {
-      hide(menuScreen);
-      hide(difficultyScreen);
-      startPath();
-    } else {
-      hide(menuScreen);
-      hide(playScreen);
-      hide(pathScreen);
-      show(difficultyScreen);
+    pendingGame = game;
+    if (difficultyTitle) {
+      difficultyTitle.textContent = game === "path" ? "Crab Path" : "Tide Pool Tidy";
     }
+    hide(menuScreen);
+    hide(playScreen);
+    hide(pathScreen);
+    show(difficultyScreen);
   }
 
   exhibits.addEventListener("pointerenter", function (event) {
@@ -265,7 +239,8 @@
 
   document.querySelectorAll("[data-difficulty]").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      startTidy(btn.dataset.difficulty);
+      if (pendingGame === "path") startPath(btn.dataset.difficulty);
+      else startTidy(btn.dataset.difficulty);
     });
   });
 
@@ -275,7 +250,7 @@
     if (cheerTimer) window.clearTimeout(cheerTimer);
     hideCheer();
     if (activeGame === "path") {
-      pathSession = CrabPath.playAgain();
+      pathSession = CrabPath.playAgain(pathSession);
       renderPath();
     } else {
       selectedId = null;
@@ -446,6 +421,7 @@
     selectedId = null;
     cheerWords.textContent = "All tidy!";
     show(cheerEl);
+    celebrateKid();
     if (session.roundIndex >= TidePool.ROUND_COUNT - 1) {
       session = TidePool.advance(session);
       show(playAgainBtn);
@@ -454,7 +430,7 @@
     }
     hide(playAgainBtn);
     hide(moreGamesBtn);
-    var wait = reduceMotion ? 0 : 1200;
+    var wait = reduceMotion ? 0 : 2000;
     cheerTimer = window.setTimeout(function () {
       session = TidePool.advance(session);
       hideCheer();
@@ -462,11 +438,13 @@
     }, wait);
   }
 
-  function startPath() {
+  function startPath(difficulty) {
     activeGame = "path";
-    pathSession = CrabPath.createSession();
-    show(pathScreen);
+    pathSession = CrabPath.createSession({ difficulty: difficulty });
+    hide(menuScreen);
+    hide(difficultyScreen);
     hide(playScreen);
+    show(pathScreen);
     hideCheer();
     renderPath();
   }
@@ -478,7 +456,8 @@
     moves.forEach(function (m) {
       legal[m.x + "," + m.y] = true;
     });
-    pathHint.textContent = "Path " + (pathSession.levelIndex + 1) + " of 6. Tap a glowing square.";
+    pathHint.textContent =
+      "Path " + (pathSession.levelIndex + 1) + " of " + CrabPath.PATH_COUNT + ". Tap a glowing square.";
     pathBoard.innerHTML = "";
     for (var y = 0; y < level.height; y++) {
       var row = document.createElement("div");
@@ -500,7 +479,6 @@
         else btn.setAttribute("aria-label", "sand");
         if (here) btn.innerHTML = crabGlyph();
         else if (type === "goal") btn.innerHTML = bucketGlyph();
-        else if (type === "rock") btn.innerHTML = art("rock", "pebble", "gray").replace("piece-art", "glyph");
         row.appendChild(btn);
       }
       pathBoard.appendChild(row);
@@ -526,8 +504,20 @@
 
   function afterPath() {
     cheerWords.textContent = "You found the bucket!";
-    show(cheerEl);
-    if (pathSession.levelIndex >= CrabPath.LEVELS.length - 1) {
+    celebrateKid();
+    var pathKid = document.querySelector(".path-kid");
+    if (pathKid) pathKid.classList.add("is-cheering");
+    function showWinBanner() {
+      show(cheerEl);
+      var cheerKid = document.querySelector(".cheer-kid");
+      if (cheerKid) {
+        cheerKid.classList.remove("is-cheering");
+        void cheerKid.offsetWidth;
+        cheerKid.classList.add("is-cheering");
+      }
+    }
+    if (pathSession.levelIndex >= CrabPath.PATH_COUNT - 1) {
+      showWinBanner();
       pathSession = CrabPath.advance(pathSession);
       show(playAgainBtn);
       show(moreGamesBtn);
@@ -535,13 +525,22 @@
     }
     hide(playAgainBtn);
     hide(moreGamesBtn);
-    var wait = reduceMotion ? 0 : 1200;
-    cheerTimer = window.setTimeout(function () {
+    if (reduceMotion) {
+      showWinBanner();
       pathSession = CrabPath.advance(pathSession);
       hideCheer();
       renderPath();
-    }, wait);
+      return;
+    }
+    cheerTimer = window.setTimeout(showWinBanner, 550);
+    pathAdvanceTimer = window.setTimeout(function () {
+      pathAdvanceTimer = null;
+      pathSession = CrabPath.advance(pathSession);
+      hideCheer();
+      renderPath();
+    }, 2400);
   }
 
+  paintKids();
   setMenuPick("tidy", false);
 })();

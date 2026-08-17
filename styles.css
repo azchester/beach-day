@@ -1,16 +1,16 @@
 :root {
-  --sand: #f3d7a3;
-  --sand-dark: #e4be78;
-  --water: #3db8c5;
-  --water-deep: #1a7a86;
-  --ink: #1b2a4a;
-  --coral: #ff6a4d;
-  --sunflower: #ffd23f;
+  --sand: #f2d04a;
+  --sand-dark: #dfb83c;
+  --water: #2aa8a8;
+  --water-deep: #1c7f84;
+  --ink: #2a2438;
+  --coral: #e24b3c;
+  --sunflower: #ffe14a;
   --foam: #fff8ee;
   --kelp: #2f7a52;
-  --sky-top: #9fd8ee;
-  --sky: #6ec4dd;
-  --shadow: rgba(27, 42, 74, 0.18);
+  --sky-top: #4eb0ea;
+  --sky: #2f96dc;
+  --shadow: rgba(42, 36, 56, 0.22);
 }
 
 *,
@@ -48,18 +48,23 @@ body {
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  background: linear-gradient(180deg, var(--sky-top) 0 38%, var(--sand) 38% 78%, var(--water) 78%);
+  background:
+    linear-gradient(180deg, rgba(47, 150, 220, 0.08), rgba(242, 208, 74, 0.05)),
+    url("assets/bg-menu.jpg") center / cover no-repeat;
   text-align: center;
   padding: 1.4rem 1.2rem 5.5rem;
 }
 
 .title-screen h1 {
   margin: 0;
-  font-family: Fredoka, "Trebuchet MS", sans-serif;
-  font-weight: 700;
+  font-family: "Luckiest Guy", Fredoka, "Trebuchet MS", sans-serif;
+  font-weight: 400;
   font-size: clamp(2.6rem, 8vw, 5rem);
-  letter-spacing: 0.02em;
-  text-shadow: 4px 4px 0 var(--foam);
+  color: #ffe14a;
+  letter-spacing: 0.03em;
+  -webkit-text-stroke: 5px var(--ink);
+  paint-order: stroke fill;
+  text-shadow: 6px 6px 0 var(--ink);
 }
 
 .tag {
@@ -67,6 +72,11 @@ body {
   font-size: clamp(1.1rem, 3vw, 1.5rem);
   font-weight: 800;
   max-width: 18em;
+  background: var(--foam);
+  border: 4px solid var(--ink);
+  border-radius: 999px;
+  padding: 0.28rem 0.95rem 0.38rem;
+  box-shadow: 3px 3px 0 var(--ink);
 }
 
 .btn {
@@ -112,11 +122,6 @@ body {
   padding-bottom: 4rem;
 }
 
-.difficulty-back {
-  top: 0.9rem;
-  transform: none;
-}
-
 .back-btn {
   appearance: none;
   position: absolute;
@@ -139,6 +144,11 @@ body {
 .back-btn:focus-visible {
   outline: 3px solid var(--coral);
   outline-offset: 3px;
+}
+
+.difficulty-back {
+  top: 0.9rem;
+  transform: none;
 }
 
 .exhibits {
@@ -209,64 +219,52 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 0.7rem;
-  background: linear-gradient(180deg, transparent 40%, var(--water) 40%);
-  border-radius: 1rem;
+  gap: 0.3rem;
 }
 
-.mini-pool {
-  width: 44px;
-  height: 52px;
-  border: 4px solid var(--ink);
-  border-radius: 46% 54% 50% 50%;
-  background: radial-gradient(circle at 40% 30%, #6fe0d2, #2a9aa6);
-}
-
-.mini-pool:nth-child(2) {
-  height: 58px;
-  background: radial-gradient(circle at 40% 30%, #ffd23f, #e4be78);
+.tidy-art img,
+.path-art img {
+  width: 74px;
+  height: 74px;
+  object-fit: contain;
+  pointer-events: none;
 }
 
 .path-art {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  align-content: center;
-  gap: 0.4rem;
-  padding: 0.8rem 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.8rem;
 }
 
-.mini-tile {
-  height: 36px;
-  border: 4px solid var(--ink);
-  border-radius: 0.6rem;
-  background: var(--sand);
+.menu-kid {
+  width: 8.4rem;
+  flex-shrink: 0;
 }
 
-.mini-tile.glow {
-  background: var(--sunflower);
-  animation: glow 1.2s ease-in-out infinite;
+.menu-kid.is-hero {
+  width: 7.6rem;
+  margin: 0.15rem 0 0.35rem;
 }
 
-.mini-crab,
-.mini-bucket {
+.menu-kid.is-small {
   position: absolute;
-  width: 28px;
-  height: 22px;
-  border: 3px solid var(--ink);
-  border-radius: 50%;
+  left: 50%;
+  bottom: 0.2rem;
+  width: 5.4rem;
+  transform: translateX(-50%);
 }
 
-.mini-crab {
-  left: 18%;
-  top: 36%;
-  background: var(--coral);
-}
-
-.mini-bucket {
-  right: 16%;
-  top: 32%;
-  border-radius: 0.3rem 0.3rem 0.6rem 0.6rem;
-  background: #e85d4c;
+.kid-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  filter: drop-shadow(3px 4px 0 var(--shadow));
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .menu-crab {
@@ -274,17 +272,18 @@ body {
   bottom: 1.4rem;
   left: 50%;
   width: 92px;
+  z-index: 2;
   transition: transform 0.35s cubic-bezier(0.2, 1.4, 0.32, 1);
   transform: translateX(calc(-50% + var(--crab-x, -150px)));
 }
 
-.menu-crab svg {
+.menu-crab img {
   width: 100%;
-  overflow: visible;
+  height: auto;
   filter: drop-shadow(3px 4px 0 var(--shadow));
 }
 
-.menu-crab.scuttle svg {
+.menu-crab.scuttle img {
   animation: scuttle 0.35s ease;
 }
 
@@ -294,22 +293,18 @@ body {
   position: absolute;
   top: 8%;
   right: 12%;
-  width: 5.5rem;
-  height: 5.5rem;
-  border-radius: 50%;
-  background: var(--sunflower);
-  border: 6px solid var(--ink);
-  box-shadow: 10px 10px 0 var(--shadow);
+  width: 6.2rem;
+  height: 6.2rem;
+  object-fit: contain;
+  filter: drop-shadow(4px 4px 0 var(--shadow));
 }
 
 .sun.small {
   position: absolute;
-  top: 0.8rem;
-  right: 1.2rem;
-  width: 2.6rem;
-  height: 2.6rem;
-  border-width: 4px;
-  box-shadow: none;
+  top: 0.35rem;
+  right: 0.6rem;
+  width: 2.8rem;
+  height: 2.8rem;
 }
 
 .play-screen {
@@ -324,7 +319,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(180deg, var(--sky-top), var(--sky));
+  background:
+    url("assets/bg-sky.jpg") center top / cover no-repeat,
+    var(--sky);
   min-height: 3.4rem;
   border-bottom: 5px solid var(--ink);
 }
@@ -337,18 +334,36 @@ body {
   font-weight: 600;
 }
 
+.sand-stage {
+  min-height: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.2rem;
+  background:
+    radial-gradient(circle at 18% 72%, var(--sand-dark) 0 7px, transparent 8px),
+    radial-gradient(circle at 72% 28%, var(--sand-dark) 0 5px, transparent 6px),
+    radial-gradient(circle at 48% 58%, var(--sand-dark) 0 4px, transparent 5px),
+    url("assets/bg-sand.jpg") center / cover no-repeat;
+}
+
+.sand-kid {
+  width: 6.2rem;
+  flex-shrink: 0;
+  padding: 0 0.3rem 0.6rem 0.6rem;
+  pointer-events: none;
+}
+
 .sand {
   position: relative;
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   align-content: flex-end;
   justify-content: center;
   gap: 1.4rem 1.8rem;
   padding: 1.4rem 1.6rem 1.4rem;
-  background:
-    radial-gradient(circle at 20% 70%, var(--sand-dark) 0 8px, transparent 9px),
-    radial-gradient(circle at 70% 30%, var(--sand-dark) 0 6px, transparent 7px),
-    var(--sand);
+  background: transparent;
 }
 
 .surf {
@@ -368,7 +383,9 @@ body {
   align-items: stretch;
   gap: 1rem;
   padding: 1rem 1rem 1.2rem;
-  background: linear-gradient(180deg, var(--water), var(--water-deep));
+  background:
+    linear-gradient(180deg, rgba(26, 127, 132, 0.2), rgba(26, 127, 132, 0.45)),
+    url("assets/bg-water.jpg") center / cover no-repeat;
 }
 
 .pool {
@@ -380,7 +397,7 @@ body {
   justify-content: flex-end;
   gap: 0.35rem;
   padding: 0.7rem 0.45rem 0.55rem;
-  background: radial-gradient(circle at 40% 30%, #6fe0d2 0 28%, #2a9aa6 70%);
+  background: radial-gradient(circle at 40% 30%, #6fe0d2 0 28%, #1f8c90 70%);
   border: 6px solid var(--ink);
   border-radius: 46% 54% 48% 52% / 50% 44% 56% 50%;
   box-shadow: inset 0 -16px 0 rgba(27, 42, 74, 0.12);
@@ -400,10 +417,11 @@ body {
   flex-shrink: 0;
 }
 
-.pool-art svg {
+.pool-art img {
   width: 100%;
   height: 100%;
-  overflow: visible;
+  object-fit: contain;
+  pointer-events: none;
 }
 
 .pool-name {
@@ -442,9 +460,11 @@ body {
 .piece .piece-art {
   width: 100%;
   height: 100%;
-  overflow: visible;
+  object-fit: contain;
   filter: drop-shadow(3px 4px 0 var(--shadow));
   pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .piece.dragging {
@@ -505,16 +525,25 @@ body {
   z-index: 30;
 }
 
+.cheer-kid {
+  width: 10.5rem;
+}
+
+.cheer-kid.is-cheering {
+  animation: celebrate-pop 0.7s ease;
+}
+
 .cheer-words {
   margin: 0;
   padding: 0.6rem 1.4rem;
   background: var(--foam);
   border: 6px solid var(--ink);
   border-radius: 1.4rem;
-  font-family: Fredoka, "Trebuchet MS", sans-serif;
+  font-family: "Luckiest Guy", Fredoka, "Trebuchet MS", sans-serif;
   font-size: clamp(2.2rem, 7vw, 3.6rem);
-  font-weight: 700;
+  font-weight: 400;
   box-shadow: 6px 6px 0 var(--ink);
+  text-shadow: 4px 4px 0 var(--sunflower);
 }
 
 .cheer-actions {
@@ -528,20 +557,33 @@ body {
   position: relative;
   display: grid;
   grid-template-rows: auto 1fr;
-  background: linear-gradient(180deg, var(--sand) 0 72%, var(--water) 72%);
+  background: url("assets/bg-sand.jpg") center / cover no-repeat, var(--sand);
 }
 
 .path-stage {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: center;
   padding: 1rem;
 }
 
 .path-board {
+  grid-column: 2;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
+}
+
+.path-kid {
+  grid-column: 3;
+  justify-self: start;
+  width: 7rem;
+  margin-left: 0.6rem;
+}
+
+.path-kid.is-cheering {
+  width: 9.2rem;
+  animation: celebrate-pop 0.7s ease;
 }
 
 .path-row {
@@ -557,25 +599,25 @@ body {
   padding: 0;
   border: 5px solid var(--ink);
   border-radius: 1.1rem;
-  background: var(--sand);
+  background: url("assets/tile-sand.png") center / cover no-repeat;
   cursor: pointer;
   position: relative;
   box-shadow: 3px 4px 0 var(--shadow);
 }
 
 .tile.rock {
-  background:
-    radial-gradient(circle at 45% 50%, #8b8e98 0 38%, #6d7078 40%);
+  background-image: url("assets/tile-rock.png");
   cursor: default;
 }
 
 .tile.water {
-  background: radial-gradient(circle at 40% 30%, #6fe0d2, #2a9aa6);
+  background-image: url("assets/tile-water.png");
   cursor: default;
 }
 
-.tile.goal {
-  background: #f7c14a;
+.tile.goal,
+.tile.here {
+  background-image: url("assets/tile-sand.png");
 }
 
 .tile.legal {
@@ -583,16 +625,13 @@ body {
   animation: glow 1.2s ease-in-out infinite;
 }
 
-.tile.here {
-  background: #f4c77a;
-}
-
 .tile .glyph {
   width: 78%;
   height: 78%;
   display: block;
   margin: 0 auto;
-  overflow: visible;
+  object-fit: contain;
+  pointer-events: none;
 }
 
 .tile.wiggle {
@@ -619,6 +658,13 @@ body {
   0% { transform: translateY(-8px); }
   40% { transform: translateY(-22px) scale(1.04); }
   100% { transform: translateY(0); }
+}
+
+@keyframes celebrate-pop {
+  0% { transform: translateY(8px) scale(0.94); }
+  40% { transform: translateY(-22px) scale(1.08); }
+  70% { transform: translateY(-6px) scale(1.02); }
+  100% { transform: translateY(0) scale(1); }
 }
 
 @keyframes glow {
@@ -652,6 +698,28 @@ body {
     display: none;
   }
 
+  .menu-kid,
+  .menu-kid.is-hero {
+    width: 5.6rem;
+  }
+
+  .sand-kid {
+    width: 4.4rem;
+    padding: 0 0 0.4rem 0.25rem;
+  }
+
+  .path-kid {
+    width: 5.2rem;
+  }
+
+  .path-kid.is-cheering {
+    width: 6.6rem;
+  }
+
+  .cheer-kid {
+    width: 8rem;
+  }
+
   .exhibits {
     flex-direction: column;
     align-items: stretch;
@@ -668,13 +736,22 @@ body {
     overflow: auto;
   }
 
+  .title-screen h1 {
+    -webkit-text-stroke-width: 3px;
+    text-shadow: 4px 4px 0 var(--ink);
+  }
+
+  .tidy-art img,
+  .path-art img {
+    width: 58px;
+    height: 58px;
+  }
+
   .menu-screen .sun {
     top: 0.5rem;
     right: 0.6rem;
-    width: 3rem;
-    height: 3rem;
-    border-width: 4px;
-    box-shadow: 4px 4px 0 var(--shadow);
+    width: 3.2rem;
+    height: 3.2rem;
   }
 
   .tile {
@@ -692,9 +769,11 @@ body {
   .tile.wiggle,
   .tile.splash,
   .exhibit.hop,
-  .mini-tile.glow,
   .menu-crab,
-  .menu-crab.scuttle svg {
+  .menu-crab.scuttle img,
+  .cheer-kid,
+  .cheer-kid.is-cheering,
+  .path-kid.is-cheering {
     animation: none;
     transition: none;
   }

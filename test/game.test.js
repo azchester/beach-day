@@ -207,6 +207,20 @@ test("easy pool order is always castle shell rock", function () {
   ]);
 });
 
+test("rock pool label names rocks and sticks", function () {
+  var s = TidePool.createSession({ difficulty: "easy", random: always(0) });
+  var rocks = s.pools.filter(function (p) { return p.id === "rocks"; })[0];
+  assert.ok(rocks);
+  assert.strictEqual(rocks.label, "rocks and sticks");
+});
+
+test("driftwood is named stick", function () {
+  var s = TidePool.createSession({ difficulty: "easy", random: always(0.99) });
+  var wood = s.items.filter(function (i) { return i.variant === "driftwood"; })[0];
+  assert.ok(wood);
+  assert.strictEqual(wood.label, "stick");
+});
+
 test("medium keeps pool order across advance", function () {
   var s = TidePool.createSession({ difficulty: "medium", random: always(0) });
   var before = s.pools.map(function (p) { return p.id; }).join(",");

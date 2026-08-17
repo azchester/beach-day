@@ -17,7 +17,9 @@ Hard’s last round: the shell pool only wants **orange shells**. An orange cast
 
 ### Crab Path
 
-Help the crab hop to the bucket. Only the glowing squares next door are safe. Rocks and water are stuck. Six short paths.
+Tap Crab Path, then Easy, Medium, or Hard.
+
+Help the crab hop to the bucket. Only the glowing squares next door are safe. Rocks and water are stuck. Six short paths; each play is a new beach. Easy stays short and open. Hard is a bigger beach with more to walk around.
 
 Tap **Games** any time to come back to the menu.
 
