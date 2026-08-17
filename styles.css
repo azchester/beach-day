@@ -11,6 +11,7 @@
   --sky-top: #4eb0ea;
   --sky: #2f96dc;
   --shadow: rgba(42, 36, 56, 0.22);
+  --path-glow: var(--coral);
 }
 
 *,
@@ -621,7 +622,10 @@ body {
 }
 
 .tile.legal {
-  box-shadow: 0 0 0 5px var(--sunflower), 3px 4px 0 var(--shadow);
+  box-shadow:
+    0 0 0 5px var(--path-glow),
+    0 0 16px 3px color-mix(in srgb, var(--path-glow) 70%, transparent),
+    3px 4px 0 var(--shadow);
   animation: glow 1.2s ease-in-out infinite;
 }
 
@@ -668,8 +672,18 @@ body {
 }
 
 @keyframes glow {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.12); }
+  0%, 100% {
+    box-shadow:
+      0 0 0 5px var(--path-glow),
+      0 0 14px 2px color-mix(in srgb, var(--path-glow) 55%, transparent),
+      3px 4px 0 var(--shadow);
+  }
+  50% {
+    box-shadow:
+      0 0 0 7px var(--path-glow),
+      0 0 22px 6px color-mix(in srgb, var(--path-glow) 85%, transparent),
+      3px 4px 0 var(--shadow);
+  }
 }
 
 @keyframes scuttle {
