@@ -561,18 +561,51 @@
     }, 2400);
   }
 
+  function jigPt(x1, y1, tx, ty, nx, ny, along, out) {
+    return {
+      x: x1 + tx * along + nx * out,
+      y: y1 + ty * along + ny * out
+    };
+  }
+
+  function jigCmd(cmd, p) {
+    return " " + cmd + " " + p.x.toFixed(2) + " " + p.y.toFixed(2);
+  }
+
   function jigEdgePath(x1, y1, x2, y2, ox, oy, kind, tab) {
-    if (kind === "flat") return " L " + x2 + " " + y2;
+    if (kind === "flat") return " L " + x2.toFixed(2) + " " + y2.toFixed(2);
     var dx = x2 - x1;
     var dy = y2 - y1;
-    var mx1 = x1 + dx * 0.36;
-    var my1 = y1 + dy * 0.36;
-    var mx2 = x1 + dx * 0.64;
-    var my2 = y1 + dy * 0.64;
+    var len = Math.hypot(dx, dy) || 1;
+    var tx = dx / len;
+    var ty = dy / len;
     var sign = kind === "tab" ? 1 : -1;
-    var cx = (x1 + x2) / 2 + ox * tab * sign;
-    var cy = (y1 + y2) / 2 + oy * tab * sign;
-    return " L " + mx1 + " " + my1 + " Q " + cx + " " + cy + " " + mx2 + " " + my2 + " L " + x2 + " " + y2;
+    var nx = ox * sign;
+    var ny = oy * sign;
+    var mid = len * 0.5;
+    var r = tab * 0.52;
+    var centerOut = tab * 0.4;
+    function p(along, out) {
+      return jigPt(x1, y1, tx, ty, nx, ny, along, out);
+    }
+    function knob(deg) {
+      var rad = (deg * Math.PI) / 180;
+      return p(mid + Math.sin(rad) * r, centerOut + Math.cos(rad) * r);
+    }
+    var neck = Math.sqrt(Math.max(0, r * r - centerOut * centerOut));
+    return (
+      jigCmd("L", p(mid - neck, 0)) +
+      jigCmd("C", p(mid - neck, 0)) +
+      jigCmd("", knob(-125)) +
+      jigCmd("", knob(-80)) +
+      jigCmd("C", knob(-40)) +
+      jigCmd("", knob(40)) +
+      jigCmd("", knob(80)) +
+      jigCmd("C", knob(125)) +
+      jigCmd("", p(mid + neck, 0)) +
+      jigCmd("", p(mid + neck, 0)) +
+      " L " + x2.toFixed(2) + " " + y2.toFixed(2)
+    );
   }
 
   function jigClip(session, id, cell, tab) {
@@ -595,7 +628,7 @@
     var cell = Math.floor(Math.min(maxW / session.cols, maxH / session.rows));
     if (cell < 44) cell = 44;
     if (cell > 110) cell = 110;
-    return { cell: cell, tab: Math.round(cell * 0.22) };
+    return { cell: cell, tab: Math.round(cell * 0.3) };
   }
 
   function startPuzzle(difficulty) {
