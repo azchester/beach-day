@@ -826,13 +826,16 @@
       event.stopPropagation();
       var ids = groupIds(id);
       var starts = {};
+      var unclamped = {};
       ids.forEach(function (pid) {
         starts[pid] = { x: puzzlePos[pid].x, y: puzzlePos[pid].y };
+        unclamped[pid] = { x: starts[pid].x, y: starts[pid].y };
       });
       drag = {
         kind: "jig",
         ids: ids,
         starts: starts,
+        unclamped: unclamped,
         x: event.clientX,
         y: event.clientY,
         moved: false
@@ -854,7 +857,8 @@
       if (!drag.moved && Math.hypot(dx, dy) < 6) return;
       drag.moved = true;
       drag.ids.forEach(function (pid) {
-        puzzlePos[pid] = { x: drag.starts[pid].x + dx, y: drag.starts[pid].y + dy };
+        drag.unclamped[pid] = { x: drag.starts[pid].x + dx, y: drag.starts[pid].y + dy };
+        puzzlePos[pid] = { x: drag.unclamped[pid].x, y: drag.unclamped[pid].y };
       });
       var size = fieldSize();
       puzzlePos = PuzzleLayout.clampGroup(puzzlePos, drag.ids, size.box, size.w, size.h);
@@ -868,16 +872,24 @@
   function finishJig() {
     if (!drag || drag.kind !== "jig") return;
     var ids = drag.ids;
+    var unclamped = drag.unclamped;
     drag = null;
     ids.forEach(function (pid) {
       var el = puzzleField.querySelector('[data-id="' + pid + '"]');
       if (el) el.classList.remove("dragging");
     });
-    trySnapGroup(ids);
+    trySnapGroup(ids, unclamped);
   }
 
-  function trySnapGroup(ids) {
-    var threshold = puzzleCell / 3;
+  function unclampedPos(raw, id) {
+    if (raw) {
+      if (raw[id] !== undefined) return raw[id];
+      if (raw[String(id)] !== undefined) return raw[String(id)];
+    }
+    return puzzlePos[id];
+  }
+
+  function trySnapGroup(ids, raw) {
     var i;
     var n;
     var nid;
@@ -890,18 +902,24 @@
         if (!Puzzle.canSnap(puzzleSession, ids[i], nid)) continue;
         var rcA = Puzzle.rowCol(puzzleSession, ids[i]);
         var rcB = Puzzle.rowCol(puzzleSession, nid);
-        var expectX = puzzlePos[nid].x + (rcA.col - rcB.col) * puzzleCell;
-        var expectY = puzzlePos[nid].y + (rcA.row - rcB.row) * puzzleCell;
-        if (Math.hypot(puzzlePos[ids[i]].x - expectX, puzzlePos[ids[i]].y - expectY) > threshold) {
-          continue;
-        }
+        var from = unclampedPos(raw, ids[i]);
+        // Use unclamped starts+dx/dy; a clamped draw pos would miss an off-field seat.
+        var seat = PuzzleLayout.snapSeat(
+          from,
+          puzzlePos[nid],
+          rcA.col - rcB.col,
+          rcA.row - rcB.row,
+          puzzleCell
+        );
+        if (!seat.ok) continue;
         var result = Puzzle.snap(puzzleSession, ids[i], nid);
         if (!result.ok) continue;
         puzzleSession = result.session;
-        var dx = expectX - puzzlePos[ids[i]].x;
-        var dy = expectY - puzzlePos[ids[i]].y;
+        var dx = seat.x - from.x;
+        var dy = seat.y - from.y;
         ids.forEach(function (pid) {
-          puzzlePos[pid] = { x: puzzlePos[pid].x + dx, y: puzzlePos[pid].y + dy };
+          var p = unclampedPos(raw, pid);
+          puzzlePos[pid] = { x: p.x + dx, y: p.y + dy };
         });
         var size = fieldSize();
         puzzlePos = PuzzleLayout.clampGroup(puzzlePos, groupIds(ids[0]), size.box, size.w, size.h);

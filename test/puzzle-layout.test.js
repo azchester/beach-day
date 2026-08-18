@@ -70,6 +70,31 @@ test("clampGroup moves a clump as one and keeps relative offset", function () {
   assert.strictEqual(next[0].y, 10);
 });
 
+test("snapSeat accepts an unclamped point whose aligned seat is off the field", function () {
+  var cell = 90;
+  var neighbor = { x: 0, y: 0 };
+  var left = PuzzleLayout.snapSeat({ x: -86, y: 4 }, neighbor, -1, 0, cell);
+  assert.strictEqual(left.x, -90);
+  assert.strictEqual(left.y, 0);
+  assert.strictEqual(left.ok, true);
+  assert.strictEqual(PuzzleLayout.snapSeat({ x: 0, y: 0 }, neighbor, -1, 0, cell).ok, false);
+  assert.strictEqual(PuzzleLayout.snapSeat({ x: 2, y: -88 }, neighbor, 0, -1, cell).ok, true);
+  assert.strictEqual(PuzzleLayout.snapSeat({ x: 0, y: 0 }, neighbor, 0, -1, cell).ok, false);
+});
+
+test("clampGroup after an outward snap keeps cell spacing and returns the clump", function () {
+  var next = PuzzleLayout.clampGroup(
+    pos({ 0: { x: -90, y: 8 }, 1: { x: 0, y: 8 } }),
+    [0, 1],
+    120,
+    400,
+    300
+  );
+  assert.strictEqual(next[1].x - next[0].x, 90);
+  assert.strictEqual(next[0].x, 0);
+  assert.strictEqual(next[1].x, 90);
+});
+
 test("groupBox is the union of jig rectangles", function () {
   var b = PuzzleLayout.groupBox(pos({ 0: { x: 10, y: 20 }, 1: { x: 90, y: 20 } }), [0, 1], 80);
   assert.strictEqual(b.x, 10);

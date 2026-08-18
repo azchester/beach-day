@@ -57,6 +57,19 @@
     });
   }
 
+  // Distance is in unclamped drag space. A neighbor on the field edge has
+  // an aligned seat at -cell (or past the far edge). The drawn (clamped)
+  // point sits a full cell away and would miss the cell/3 threshold.
+  function snapSeat(from, neighbor, dCol, dRow, cell) {
+    var x = neighbor.x + dCol * cell;
+    var y = neighbor.y + dRow * cell;
+    return {
+      x: x,
+      y: y,
+      ok: Math.hypot(from.x - x, from.y - y) <= cell / 3
+    };
+  }
+
   function clampGroup(pos, ids, box, fieldW, fieldH) {
     var next = clonePos(pos);
     if (!ids || !ids.length) return next;
@@ -232,6 +245,7 @@
 
   var PuzzleLayout = {
     groupBox: groupBox,
+    snapSeat: snapSeat,
     clampGroup: clampGroup,
     centerGroup: centerGroup,
     tidyPositions: tidyPositions
