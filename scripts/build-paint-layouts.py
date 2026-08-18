@@ -23,9 +23,9 @@ MENU_SVG = os.path.join(PAINT, "menu-preview.svg")
 
 PICTURES = ["sun", "crab", "sandcastle", "fish", "starfish", "boat", "shell", "bucket"]
 COLOR_K = {"easy": 4, "medium": 6, "hard": 8}
-MAX_FACETS = {"easy": 10, "medium": 20, "hard": 40}
-# GitHub-style: merge small natural pockets. Never slice into rectangles.
-ABSORB_PX = {"easy": 90, "medium": 40, "hard": 18}
+# Soft targets only. We never slice rooms, and we never merge two
+# healthy pockets just to hit 10 / 20 / 40.
+ABSORB_PX = {"easy": 70, "medium": 32, "hard": 14}
 TARGET = 260
 WALL_LUMA = 118
 
@@ -243,13 +243,11 @@ def merge_smallest(regions, w):
     regions[best] |= small
 
 
-def reduce_facets(regions, w, min_size, max_n):
-    """FacetReducer analog: drop tiny pockets, then merge down to a cap."""
+def reduce_facets(regions, w, min_size):
+    """Keep every natural pocket. Only fold dust into a neighbor."""
     regions = absorb_tiny([set(r) for r in regions if r], w, min_size)
     if not regions:
         raise SystemExit("reduce_facets emptied the picture")
-    while len(regions) > max_n:
-        merge_smallest(regions, w)
     regions.sort(key=len, reverse=True)
     return regions
 
@@ -392,7 +390,7 @@ def build_picture(name):
         raise SystemExit("no regions in " + name)
     layouts = {}
     for diff in ("easy", "medium", "hard"):
-        fitted = reduce_facets(raw, w, ABSORB_PX[diff], MAX_FACETS[diff])
+        fitted = reduce_facets(raw, w, ABSORB_PX[diff])
         colored = assign_colors(fitted, COLOR_K[diff])
         cells = []
         for region, color in colored:

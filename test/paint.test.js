@@ -53,7 +53,7 @@ function fillAll(session) {
 test("createSession with no args is medium", function () {
   var s = Paint.createSession({ random: always(0) });
   assert.strictEqual(s.difficulty, "medium");
-  assert.ok(s.cells.length >= 3 && s.cells.length <= 20);
+  assert.ok(s.cells.length >= 2);
   assert.strictEqual(s.selectedColor, null);
   assert.strictEqual(s.complete, false);
   var nColors = Object.keys(colorCounts(s.cells)).length;
@@ -70,19 +70,18 @@ test("unknown difficulty is medium", function () {
   assert.strictEqual(g.colors, 6);
 });
 
-test("Easy has at most 10 organic cells and at most 4 colors", function () {
+test("Easy uses at most 4 color numbers", function () {
   var s = Paint.createSession({ difficulty: "easy", random: always(0) });
-  assert.ok(s.cells.length >= 3 && s.cells.length <= 10);
+  assert.ok(s.cells.length >= 2);
   var counts = colorCounts(s.cells);
   Object.keys(counts).forEach(function (c) {
     assert.ok(Number(c) >= 1 && Number(c) <= 4);
   });
 });
 
-test("Hard has more cells than Easy and at most 8 colors", function () {
+test("Hard is at least as detailed as Easy and uses at most 8 colors", function () {
   var easy = Paint.createSession({ difficulty: "easy", random: always(0) });
   var hard = Paint.createSession({ difficulty: "hard", random: always(0) });
-  assert.ok(hard.cells.length <= 40);
   assert.ok(hard.cells.length >= easy.cells.length);
   var counts = colorCounts(hard.cells);
   Object.keys(counts).forEach(function (c) {
@@ -210,12 +209,12 @@ test("two random stubs differ in pictureIndex", function () {
   assert.notStrictEqual(a.pictureIndex, b.pictureIndex);
 });
 
-test("every picture layout has organic cells under the difficulty cap", function () {
+test("every picture layout has organic cells and in-range colors", function () {
   Paint.PICTURES.forEach(function (_, index) {
     ["easy", "medium", "hard"].forEach(function (d) {
       var layout = Paint.layout(index, d);
       var expect = Paint.grid(d);
-      assert.ok(layout.length >= 2 && layout.length <= expect.cells);
+      assert.ok(layout.length >= 2);
       layout.forEach(function (cell) {
         assert.ok(cell.d && cell.d.charAt(0) === "M");
         assert.ok(cell.color >= 1 && cell.color <= expect.colors);
