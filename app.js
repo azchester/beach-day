@@ -565,6 +565,7 @@
         startY: event.clientY,
         moved: false
       };
+      reactKid("glance", { isDeselect: selectedId === item.id }, btn);
       try {
         btn.setPointerCapture(event.pointerId);
       } catch (err) {}
@@ -595,7 +596,12 @@
     renderTidy();
     var fresh = poolsEl.querySelector('[data-pool="' + poolEl.dataset.pool + '"]');
     pulse(fresh, result.ok ? "splash" : "wiggle");
-    if (result.ok && session.complete) afterTidyRound();
+    if (result.ok) {
+      reactKid("nod", { won: session.complete });
+      if (session.complete) afterTidyRound();
+    } else {
+      reactKid("hmm", { didMiss: true });
+    }
     return true;
   }
 
@@ -704,6 +710,7 @@
     var result = CrabPath.step(pathSession, x, y);
     if (!result.ok) {
       pulse(tile, "wiggle");
+      reactKid("hmm", { didMiss: true });
       return;
     }
     pathSession = result.session;
@@ -711,6 +718,7 @@
     var fresh = pathBoard.querySelector('[data-x="' + x + '"][data-y="' + y + '"]');
     pulse(fresh, "splash");
     if (pathSession.complete) afterPath();
+    else reactKid("nod", {});
   });
 
   function afterPath() {
@@ -1008,6 +1016,7 @@
         y: event.clientY,
         moved: false
       };
+      reactKid("glance", {}, btn);
       ids.forEach(function (pid) {
         var el = puzzleField.querySelector('[data-id="' + pid + '"]');
         if (el) el.classList.add("dragging");
@@ -1041,12 +1050,18 @@
     if (!drag || drag.kind !== "jig") return;
     var ids = drag.ids;
     var unclamped = drag.unclamped;
+    var moved = drag.moved;
     drag = null;
     ids.forEach(function (pid) {
       var el = puzzleField.querySelector('[data-id="' + pid + '"]');
       if (el) el.classList.remove("dragging");
     });
-    trySnapGroup(ids, unclamped);
+    var snapped = trySnapGroup(ids, unclamped);
+    if (snapped) {
+      reactKid("nod", { won: puzzleSession.complete });
+    } else if (moved) {
+      reactKid("hmm", { didMiss: true });
+    }
   }
 
   function unclampedPos(raw, id) {
@@ -1093,9 +1108,10 @@
         puzzlePos = PuzzleLayout.clampGroup(puzzlePos, groupIds(ids[0]), size.box, size.w, size.h);
         renderPuzzle();
         if (puzzleSession.complete) afterPuzzle();
-        return;
+        return true;
       }
     }
+    return false;
   }
 
   function centerCompletedPuzzle() {
