@@ -92,6 +92,10 @@ body {
   border-radius: 999px;
   cursor: pointer;
   box-shadow: 0 6px 0 var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
 }
 
 .btn:hover {
@@ -140,6 +144,29 @@ body {
   cursor: pointer;
   box-shadow: 0 3px 0 var(--ink);
   z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0.08em;
+  flex-shrink: 0;
+}
+
+.btn-icon img {
+  width: 1.35em;
+  height: 1.35em;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.back-btn .btn-icon img {
+  width: 1.25em;
+  height: 1.25em;
 }
 
 .back-btn:focus-visible {
