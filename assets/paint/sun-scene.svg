@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<path data-role="skyL" data-color="3" fill="#4eb0ea" d="M0.00 0.00L18.00 0.00L20.00 4.00L18.00 8.00L18.00 40.00L18.00 72.00L0.00 72.00L0.00 36.00Z"/>
+<path data-role="skyC" data-color="3" fill="#4eb0ea" d="M18.00 0.00L50.00 0.00L82.00 0.00L80.00 4.00L82.00 8.00L50.00 6.40L18.00 8.00L20.00 4.00Z"/>
+<path data-role="skyR" data-color="3" fill="#4eb0ea" d="M82.00 0.00L100.00 0.00L100.00 36.00L100.00 72.00L82.00 72.00L82.00 40.00L82.00 8.00L80.00 4.00Z"/>
+<path data-role="waterL" data-color="5" fill="#2aa8a8" d="M0.00 72.00L18.00 72.00L50.00 70.50L47.80 78.25L50.00 86.00L18.00 84.00L0.00 84.00L0.00 78.00Z"/>
+<path data-role="waterR" data-color="5" fill="#2aa8a8" d="M50.00 70.50L82.00 72.00L100.00 72.00L100.00 78.00L100.00 84.00L82.00 84.00L50.00 86.00L47.80 78.25Z"/>
+<path data-role="sandL" data-color="4" fill="#f2d04a" d="M0.00 84.00L18.00 84.00L20.40 92.00L18.00 100.00L17.50 100.00L13.62 84.89L9.75 83.00L5.88 84.89L2.00 100.00L0.00 100.00L0.00 92.00Z"/>
+<path data-role="sandC" data-color="4" fill="#f2d04a" d="M18.00 84.00L50.00 86.00L82.00 84.00L79.60 92.00L82.00 100.00L62.00 100.00L56.00 84.45L50.00 82.50L44.00 84.45L38.00 100.00L18.00 100.00L20.40 92.00Z"/>
+<path data-role="sandR" data-color="4" fill="#f2d04a" d="M82.00 84.00L100.00 84.00L100.00 92.00L100.00 100.00L98.00 100.00L94.25 85.34L90.50 83.50L86.75 85.34L83.00 100.00L82.00 100.00L79.60 92.00Z"/>
+<path data-role="coral" data-color="7" fill="#e24b3c" d="M2.00 100.00L5.88 100.00L9.75 100.00L13.62 100.00L17.50 100.00L13.62 84.89L9.75 83.00L5.88 84.89Z"/>
+<path data-role="kelp" data-color="6" fill="#2f7a52" d="M38.00 100.00L44.00 100.00L50.00 100.00L56.00 100.00L62.00 100.00L56.00 84.45L50.00 82.50L44.00 84.45Z"/>
+<path data-role="dune" data-color="8" fill="#f7c09a" d="M83.00 100.00L86.75 100.00L90.50 100.00L94.25 100.00L98.00 100.00L94.25 85.34L90.50 83.50L86.75 85.34Z"/>
+<path data-role="face" data-color="1" fill="#ffe14a" d="M64.41 34.03L64.41 45.97L55.97 54.41L44.03 54.41L35.59 45.97L35.59 34.03L44.03 25.59L55.97 25.59Z"/>
+<path data-role="skyWedgeR" data-color="3" fill="#4eb0ea" d="M64.41 34.03L82.00 26.75L82.00 53.25L64.41 45.97Z"/>
+<path data-role="ray1" data-color="1" fill="#ffe14a" d="M64.41 45.97L82.00 53.25L82.00 72.00L63.25 72.00L55.97 54.41Z"/>
+<path data-role="ray2" data-color="2" fill="#f4a03c" d="M55.97 54.41L63.25 72.00L36.75 72.00L44.03 54.41Z"/>
+<path data-role="ray3" data-color="1" fill="#ffe14a" d="M44.03 54.41L36.75 72.00L18.00 72.00L18.00 53.25L35.59 45.97Z"/>
+<path data-role="skyWedgeL" data-color="3" fill="#4eb0ea" d="M35.59 45.97L18.00 53.25L18.00 26.75L35.59 34.03Z"/>
+<path data-role="ray4" data-color="2" fill="#f4a03c" d="M35.59 34.03L18.00 26.75L18.00 8.00L36.75 7.06L44.03 25.59Z"/>
+<path data-role="ray5" data-color="1" fill="#ffe14a" d="M44.03 25.59L36.75 7.06L50.00 6.40L63.25 7.06L55.97 25.59Z"/>
+<path data-role="ray6" data-color="2" fill="#f4a03c" d="M55.97 25.59L63.25 7.06L82.00 8.00L82.00 26.75L64.41 34.03Z"/>
+<path d="M42 36Q44 33 46 36Q44 38 42 36Z" fill="none"/>
+<path d="M54 36Q56 33 58 36Q56 38 54 36Z" fill="none"/>
+<path d="M42 46Q50 54 58 46" fill="none"/>
+</svg>
