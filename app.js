@@ -33,8 +33,6 @@
   var pathBoard = document.getElementById("path-board");
   var puzzleScreen = document.getElementById("puzzle-screen");
   var puzzleField = document.getElementById("puzzle-field");
-  var MENU_GAMES = ["tidy", "puzzle", "path"];
-  var CRAB_X = { tidy: "-180px", puzzle: "0px", path: "180px" };
   var puzzleSession = null;
   var puzzlePos = {};
   var puzzleCell = 72;
@@ -181,19 +179,29 @@
     setMenuPick(menuPick || "tidy", false);
   }
 
+  function placeMenuCrab(game) {
+    if (!menuCrab || !menuScreen) return;
+    var card = exhibits.querySelector('[data-game="' + game + '"]');
+    var dx = BeachMenu.crabOffsetPx(
+      menuScreen.getBoundingClientRect(),
+      card ? card.getBoundingClientRect() : null
+    );
+    menuCrab.style.setProperty("--crab-x", dx + "px");
+  }
+
   function setMenuPick(game, scuttle) {
     menuPick = game;
-    menuCrab.style.setProperty("--crab-x", CRAB_X[game] || "0px");
-    if (scuttle && !reduceMotion) {
-      menuCrab.classList.remove("scuttle");
-      void menuCrab.offsetWidth;
-      menuCrab.classList.add("scuttle");
-    }
     [].forEach.call(exhibits.querySelectorAll(".exhibit"), function (btn) {
       var on = btn.dataset.game === game;
       btn.classList.toggle("is-on", on);
       btn.setAttribute("aria-selected", on ? "true" : "false");
     });
+    placeMenuCrab(game);
+    if (scuttle && !reduceMotion) {
+      menuCrab.classList.remove("scuttle");
+      void menuCrab.offsetWidth;
+      menuCrab.classList.add("scuttle");
+    }
   }
 
   function openGame(game) {
@@ -237,11 +245,13 @@
     if (menuScreen.hidden) return;
     if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
       event.preventDefault();
-      var at = MENU_GAMES.indexOf(menuPick);
+      var games = BeachMenu.gameIds(exhibits.querySelectorAll(".exhibit"));
+      if (!games.length) return;
+      var at = games.indexOf(menuPick);
       if (at < 0) at = 0;
-      if (event.key === "ArrowRight") at = (at + 1) % MENU_GAMES.length;
-      else at = (at + MENU_GAMES.length - 1) % MENU_GAMES.length;
-      setMenuPick(MENU_GAMES[at], true);
+      if (event.key === "ArrowRight") at = (at + 1) % games.length;
+      else at = (at + games.length - 1) % games.length;
+      setMenuPick(games[at], true);
       exhibits.querySelector('[data-game="' + menuPick + '"]').focus();
     }
     if (event.key === "Enter" && menuPick) {
@@ -886,6 +896,10 @@
     show(playAgainBtn);
     show(moreGamesBtn);
   }
+
+  window.addEventListener("resize", function () {
+    if (menuScreen && !menuScreen.hidden) placeMenuCrab(menuPick);
+  });
 
   paintKids();
   setMenuPick("tidy", false);

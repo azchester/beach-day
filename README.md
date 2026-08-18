@@ -35,4 +35,5 @@ Tap **Games** any time to come back to the menu.
 node test/game.test.js
 node test/path.test.js
 node test/puzzle.test.js
+node test/menu.test.js
 ```
