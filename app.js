@@ -939,11 +939,23 @@
       pathEl.setAttribute("stroke-linecap", "round");
       if (paintSession.filled[cell.id]) {
         pathEl.setAttribute("fill", Paint.hex(Paint.colorName(paintSession.pictureIndex, cell.color)));
-        paintBlobs.appendChild(pathEl);
+      } else {
+        pathEl.setAttribute("fill", "#ffffff");
+      }
+      paintBlobs.appendChild(pathEl);
+      var hit = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      hit.setAttribute("d", cell.d);
+      hit.setAttribute("data-cell", String(cell.id));
+      hit.setAttribute("class", "paint-hit");
+      hit.setAttribute("fill", "none");
+      hit.setAttribute("stroke", "rgba(0,0,0,0.001)");
+      hit.setAttribute("stroke-width", "5");
+      hit.setAttribute("stroke-linejoin", "round");
+      hit.setAttribute("stroke-linecap", "round");
+      paintBlobs.appendChild(hit);
+      if (paintSession.filled[cell.id]) {
         return;
       }
-      pathEl.setAttribute("fill", "#ffffff");
-      paintBlobs.appendChild(pathEl);
       var label = document.createElementNS("http://www.w3.org/2000/svg", "text");
       label.setAttribute("x", String(cell.lx != null ? cell.lx : 50));
       label.setAttribute("y", String((cell.ly != null ? cell.ly : 50) + 0.35));

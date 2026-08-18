@@ -819,6 +819,10 @@ body {
   transform-origin: center;
 }
 
+.paint-blobs path.paint-hit {
+  pointer-events: stroke;
+}
+
 .paint-blobs path.wiggle {
   animation: wiggle 0.4s ease;
 }

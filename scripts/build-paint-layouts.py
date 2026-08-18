@@ -170,6 +170,30 @@ def shared_border(a, b, w):
     return n
 
 
+def centroid(region, w):
+    sx = sy = 0
+    for i in region:
+        sx += i % w
+        sy += i // w
+    n = max(1, len(region))
+    return sx / float(n), sy / float(n)
+
+
+def nearest_index(regions, i, w):
+    cx, cy = centroid(regions[i], w)
+    best = -1
+    best_d = 1e18
+    for j, other in enumerate(regions):
+        if j == i:
+            continue
+        ox, oy = centroid(other, w)
+        d = (cx - ox) ** 2 + (cy - oy) ** 2
+        if d < best_d:
+            best_d = d
+            best = j
+    return best
+
+
 def absorb_tiny(regions, w, min_size):
     regions = [set(r) for r in regions]
     changed = True
@@ -189,6 +213,8 @@ def absorb_tiny(regions, w, min_size):
                 if n > best_n:
                     best_n = n
                     best = j
+            if best < 0:
+                best = nearest_index(regions, i, w)
             if best < 0:
                 i += 1
                 continue
@@ -216,32 +242,53 @@ def split_region(region, w):
     return a, b
 
 
-def fit_count(regions, w, n):
+def merge_smallest(regions, w):
+    regions.sort(key=len)
+    small = regions.pop(0)
+    if not regions:
+        regions.append(small)
+        return
+    best = 0
+    best_n = -1
+    for j, other in enumerate(regions):
+        edge = shared_border(small, other, w)
+        if edge > best_n:
+            best_n = edge
+            best = j
+    if best_n <= 0:
+        fake = [small] + regions
+        near = nearest_index(fake, 0, w)
+        if near > 0:
+            best = near - 1
+    regions[best] |= small
+
+
+def fit_count(regions, w, n, min_half=90):
     regions = [set(r) for r in regions if r]
     if not regions:
         raise SystemExit("fit_count given no regions")
     guard = 0
     while len(regions) > n and guard < 800:
-        regions.sort(key=len)
-        small = regions.pop(0)
-        if not regions:
-            regions.append(small)
-            break
-        best = 0
-        best_n = -1
-        for j, other in enumerate(regions):
-            edge = shared_border(small, other, w)
-            if edge > best_n:
-                best_n = edge
-                best = j
-        regions[best] |= small
+        merge_smallest(regions, w)
         guard += 1
+    floor = min_half
     while len(regions) < n and guard < 800:
+        idx = None
         regions.sort(key=len)
-        big = regions.pop()
-        if len(big) < 6:
-            regions.append(big)
-            break
+        for i in range(len(regions) - 1, -1, -1):
+            if len(regions[i]) >= 2 * floor:
+                idx = i
+                break
+        if idx is None:
+            floor = max(12, floor // 2)
+            if floor <= 12:
+                idx = len(regions) - 1
+                if len(regions[idx]) < 8:
+                    break
+            else:
+                guard += 1
+                continue
+        big = regions.pop(idx)
         a, b = split_region(big, w)
         if not a or not b:
             regions.append(big)
@@ -250,18 +297,32 @@ def fit_count(regions, w, n):
         regions.append(b)
         guard += 1
     regions = [r for r in regions if r]
-    while len(regions) < n:
-        regions.sort(key=len)
-        big = regions[-1]
-        if len(big) < 2:
-            extra = set(list(big))
-            regions.append(extra)
-            continue
-        pixel = next(iter(big))
-        big.remove(pixel)
-        regions.append({pixel})
+    while len(regions) > n:
+        merge_smallest(regions, w)
     regions.sort(key=len, reverse=True)
-    return regions[:n]
+    if len(regions) != n:
+        raise SystemExit("fit_count wanted %d got %d" % (n, len(regions)))
+    return regions
+
+
+def grow_small(regions, w, n, min_keep):
+    regions = [set(r) for r in regions if r]
+    for _ in range(240):
+        regions.sort(key=len)
+        if not regions or len(regions[0]) >= min_keep:
+            break
+        if len(regions) == 1:
+            break
+        merge_smallest(regions, w)
+        regions.sort(key=len)
+        big = regions.pop()
+        if len(big) < min_keep * 2:
+            regions.append(big)
+            break
+        a, b = split_region(big, w)
+        regions.append(a)
+        regions.append(b)
+    return fit_count(regions, w, n, min_half=max(12, min_keep // 2))
 
 
 def assign_colors(regions, counts):
@@ -401,21 +462,34 @@ def build_picture(name):
     w0, h0, pix0 = load_png_as_rgb(png)
     w, h, pix = downsample(w0, h0, pix0, TARGET)
     regions, _wall = flood_regions(w, h, pix)
-    regions = absorb_tiny(regions, w, min_size=18)
+    # Swallow boom/mast/rib slivers into the big subject before we split.
+    regions = absorb_tiny(regions, w, min_size=140)
     if not regions:
         raise SystemExit("no regions in " + name)
     layouts = {}
+    min_half = {"easy": 180, "medium": 110, "hard": 60}
+    min_keep = {"easy": 220, "medium": 130, "hard": 70}
     for diff, n in CELL_N.items():
-        fitted = fit_count(regions, w, n)
+        fitted = fit_count(regions, w, n, min_half=min_half[diff])
+        fitted = grow_small(fitted, w, n, min_keep[diff])
         colored = assign_colors(fitted, COUNTS[diff])
         cells = []
         for region, color in colored:
+            xs = [i % w for i in region]
+            ys = [i // w for i in region]
+            x0, y0, x1, y1 = min(xs), min(ys), max(xs) + 1, max(ys) + 1
             loop = contour(region, w, h)
+            if len(loop) >= 2:
+                lx0 = min(p[0] for p in loop)
+                ly0 = min(p[1] for p in loop)
+                lx1 = max(p[0] for p in loop)
+                ly1 = max(p[1] for p in loop)
+            else:
+                lx0 = ly0 = lx1 = ly1 = 0
+            if (lx1 - lx0) * (ly1 - ly0) < 0.35 * (x1 - x0) * (y1 - y0):
+                loop = [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)]
             d = path_to_d(loop, w, h)
             if not d:
-                xs = [i % w for i in region]
-                ys = [i // w for i in region]
-                x0, y0, x1, y1 = min(xs), min(ys), max(xs) + 1, max(ys) + 1
                 loop = [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)]
                 d = path_to_d(loop, w, h)
             lx, ly = label_point(region, w, h)
