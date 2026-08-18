@@ -94,6 +94,18 @@ function isAxisAlignedRectangle(d) {
   });
 }
 
+function usedColors(layout) {
+  var set = {};
+  layout.forEach(function (c) {
+    set[c.color] = true;
+  });
+  return Object.keys(set)
+    .map(Number)
+    .sort(function (a, b) {
+      return a - b;
+    });
+}
+
 test("createSession has no difficulty and deals one picture", function () {
   var s = Paint.createSession({ random: always(0) });
   assert.strictEqual(s.difficulty, undefined);
@@ -286,6 +298,36 @@ test("every picture layout has organic cells and in-range colors", function () {
         false,
         Paint.PICTURES[index] + " cell " + cell.id + " is a rectangle"
       );
+    });
+  });
+});
+
+test("every picture is a 16-22 cell scene with pots 1..K and no foam", function () {
+  Paint.PICTURES.forEach(function (id, index) {
+    var layout = Paint.layout(index);
+    assert.ok(layout.length >= 16 && layout.length <= 22, id + " cells=" + layout.length);
+    var used = usedColors(layout);
+    var k = used[used.length - 1];
+    assert.ok(k >= 7 && k <= 8, id + " K=" + k);
+    used.forEach(function (n, i) {
+      assert.strictEqual(n, i + 1, id + " gap at " + n);
+    });
+    var names = used.map(function (n) {
+      return Paint.colorName(index, n);
+    });
+    assert.ok(names.indexOf("sky") !== -1, id + " missing sky");
+    assert.ok(names.indexOf("water") !== -1, id + " missing water");
+    assert.ok(names.indexOf("sand") !== -1, id + " missing sand");
+    names.forEach(function (name) {
+      assert.notStrictEqual(name, "foam");
+      assert.notStrictEqual(name, null);
+    });
+    layout.forEach(function (cell) {
+      assert.ok(cell.d && cell.d.charAt(0) === "M");
+      assert.ok(/Z\s*$/.test(cell.d));
+      assert.strictEqual(isAxisAlignedRectangle(cell.d), false, id + " cell " + cell.id + " is a rectangle");
+      assert.ok(cell.lx >= 0 && cell.lx <= 100);
+      assert.ok(cell.ly >= 0 && cell.ly <= 100);
     });
   });
 });
