@@ -40,6 +40,12 @@
   var puzzlePeekImg = document.getElementById("puzzle-peek-img");
   var puzzlePeekClose = document.getElementById("puzzle-peek-close");
   var puzzlePeekDim = document.getElementById("puzzle-peek-dim");
+  var paintScreen = document.getElementById("paint-screen");
+  var paintOutline = document.getElementById("paint-outline");
+  var paintBlobs = document.getElementById("paint-blobs");
+  var paintLabels = document.getElementById("paint-labels");
+  var paintPots = document.getElementById("paint-pots");
+  var paintSession = null;
   var puzzleSession = null;
   var puzzlePos = {};
   var puzzleCell = 72;
@@ -66,7 +72,9 @@
   function hideCheer() {
     hide(cheerEl);
     cheerEl.classList.remove("is-puzzle");
+    cheerEl.classList.remove("is-paint");
     if (puzzleScreen) puzzleScreen.classList.remove("is-won");
+    if (paintScreen) paintScreen.classList.remove("is-won");
     hide(playAgainBtn);
     hide(moreGamesBtn);
     if (pathAdvanceTimer) {
@@ -193,6 +201,7 @@
     hide(playScreen);
     hide(pathScreen);
     hide(puzzleScreen);
+    hide(paintScreen);
     hide(difficultyScreen);
     closePuzzlePeek();
     hideCheer();
@@ -228,6 +237,10 @@
   function openGame(game) {
     hideCheer();
     pendingGame = game;
+    if (game === "paint") {
+      startPaint();
+      return;
+    }
     if (difficultyTitle) {
       difficultyTitle.textContent =
         game === "path" ? "Crab Path" : game === "puzzle" ? "Beach Puzzle" : "Tide Pool Tidy";
@@ -236,6 +249,7 @@
     hide(playScreen);
     hide(pathScreen);
     hide(puzzleScreen);
+    hide(paintScreen);
     show(difficultyScreen);
   }
 
@@ -303,6 +317,9 @@
       renderPath();
     } else if (activeGame === "puzzle") {
       startPuzzleDeal(Puzzle.playAgain(puzzleSession));
+    } else if (activeGame === "paint") {
+      paintSession = Paint.playAgain(paintSession);
+      renderPaint();
     } else {
       selectedId = null;
       session = TidePool.playAgain(session);
@@ -318,6 +335,7 @@
     hide(difficultyScreen);
     hide(pathScreen);
     hide(puzzleScreen);
+    hide(paintScreen);
     show(playScreen);
     hideCheer();
     renderTidy();
@@ -497,6 +515,7 @@
     hide(difficultyScreen);
     hide(playScreen);
     hide(puzzleScreen);
+    hide(paintScreen);
     show(pathScreen);
     hideCheer();
     renderPath();
@@ -670,6 +689,7 @@
     hide(difficultyScreen);
     hide(playScreen);
     hide(pathScreen);
+    hide(paintScreen);
     show(puzzleScreen);
     hideCheer();
     window.requestAnimationFrame(function () {
@@ -954,6 +974,125 @@
     puzzleScreen.classList.add("is-won");
     cheerEl.classList.add("is-puzzle");
     cheerWords.textContent = "What a puzzle!";
+    show(cheerEl);
+    celebrateKid();
+    show(playAgainBtn);
+    show(moreGamesBtn);
+  }
+
+  function startPaint() {
+    activeGame = "paint";
+    hide(menuScreen);
+    hide(difficultyScreen);
+    hide(playScreen);
+    hide(pathScreen);
+    hide(puzzleScreen);
+    show(paintScreen);
+    hideCheer();
+    paintSession = Paint.createSession();
+    renderPaint();
+  }
+
+  function renderPaint() {
+    if (paintOutline) paintOutline.src = Paint.pictureSrc(paintSession);
+    var layout = Paint.layout(paintSession.pictureIndex);
+    paintBlobs.innerHTML = "";
+    if (paintLabels) paintLabels.innerHTML = "";
+    var fontSize = layout.length > 22 ? "4.6" : "5.6";
+    layout.forEach(function (cell) {
+      var pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      pathEl.setAttribute("d", cell.d);
+      pathEl.setAttribute("data-cell", String(cell.id));
+      pathEl.setAttribute("stroke", "#2a2438");
+      pathEl.setAttribute("stroke-width", "0.35");
+      pathEl.setAttribute("stroke-linejoin", "round");
+      pathEl.setAttribute("stroke-linecap", "round");
+      if (paintSession.filled[cell.id]) {
+        pathEl.setAttribute("fill", Paint.hex(Paint.colorName(paintSession.pictureIndex, cell.color)));
+      } else {
+        pathEl.setAttribute("fill", "#ffffff");
+      }
+      paintBlobs.appendChild(pathEl);
+      var hit = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      hit.setAttribute("d", cell.d);
+      hit.setAttribute("data-cell", String(cell.id));
+      hit.setAttribute("class", "paint-hit");
+      hit.setAttribute("fill", "none");
+      hit.setAttribute("stroke", "rgba(0,0,0,0.001)");
+      hit.setAttribute("stroke-width", "5");
+      hit.setAttribute("stroke-linejoin", "round");
+      hit.setAttribute("stroke-linecap", "round");
+      paintBlobs.appendChild(hit);
+      if (paintSession.filled[cell.id]) {
+        return;
+      }
+      var label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("x", String(cell.lx != null ? cell.lx : 50));
+      label.setAttribute("y", String((cell.ly != null ? cell.ly : 50) + 0.35));
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("dominant-baseline", "middle");
+      label.setAttribute("font-family", "Tahoma, Nunito, sans-serif");
+      label.setAttribute("font-size", fontSize);
+      label.setAttribute("font-weight", "700");
+      label.setAttribute("fill", "#1a1a1a");
+      label.setAttribute("stroke", "#fff8ee");
+      label.setAttribute("stroke-width", "0.85");
+      label.setAttribute("paint-order", "stroke");
+      label.setAttribute("pointer-events", "none");
+      label.textContent = String(cell.color);
+      if (paintLabels) paintLabels.appendChild(label);
+      else paintBlobs.appendChild(label);
+    });
+
+    var pots = Paint.palette(paintSession.pictureIndex);
+    var used = {};
+    layout.forEach(function (cell) {
+      used[cell.color] = true;
+    });
+    paintPots.innerHTML = "";
+    pots.forEach(function (name, i) {
+      var n = i + 1;
+      if (!used[n]) return;
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "paint-pot";
+      if (paintSession.selectedColor === n) btn.classList.add("is-on");
+      btn.style.background = Paint.hex(name);
+      btn.dataset.color = String(n);
+      btn.setAttribute("aria-label", "color " + n);
+      btn.textContent = String(n);
+      paintPots.appendChild(btn);
+    });
+  }
+
+  paintPots.addEventListener("click", function (event) {
+    var btn = event.target.closest ? event.target.closest("[data-color]") : null;
+    if (!btn || !paintSession) return;
+    var result = Paint.selectColor(paintSession, Number(btn.dataset.color));
+    if (!result.ok) return;
+    paintSession = result.session;
+    renderPaint();
+  });
+
+  paintBlobs.addEventListener("click", function (event) {
+    var node = event.target.closest ? event.target.closest("[data-cell]") : event.target;
+    if (!node || !node.getAttribute || !paintSession) return;
+    var id = Number(node.getAttribute("data-cell"));
+    if (id !== id) return;
+    var result = Paint.fill(paintSession, id);
+    if (!result.ok) {
+      pulse(node, "wiggle");
+      return;
+    }
+    paintSession = result.session;
+    renderPaint();
+    if (paintSession.complete) afterPaint();
+  });
+
+  function afterPaint() {
+    paintScreen.classList.add("is-won");
+    cheerEl.classList.add("is-paint");
+    cheerWords.textContent = "What a picture!";
     show(cheerEl);
     celebrateKid();
     show(playAgainBtn);

@@ -71,6 +71,20 @@
             <span class="exhibit-name">Crab Path</span>
             <span class="exhibit-blurb">Hop to the bucket</span>
           </button>
+          <button type="button" class="exhibit" data-game="paint" role="option" aria-selected="false">
+            <div class="exhibit-art paint-art" aria-hidden="true">
+              <div class="paint-thumb">
+                <img src="assets/paint/menu-preview.svg" alt="" />
+              </div>
+              <div class="paint-thumb-pots">
+                <span class="paint-thumb-pot" style="background:#ffe14a">1</span>
+                <span class="paint-thumb-pot" style="background:#f4a03c">2</span>
+                <span class="paint-thumb-pot" style="background:#4eb0ea">3</span>
+              </div>
+            </div>
+            <span class="exhibit-name">Paint by Number</span>
+            <span class="exhibit-blurb">Color the picture</span>
+          </button>
         </div>
         <div class="menu-crab" id="menu-crab" aria-hidden="true">
           <img src="assets/crab.png" alt="" />
@@ -187,6 +201,27 @@
         </div>
       </section>
 
+      <section id="paint-screen" class="screen path-screen paint-screen hidden" hidden>
+        <div class="sky">
+          <button type="button" class="back-btn" data-back>
+            <span class="btn-icon" aria-hidden="true">
+              <img src="assets/icon-house.png" alt="" />
+            </span>
+            Games
+          </button>
+          <img class="sun small" src="assets/sun.png" alt="" aria-hidden="true" />
+        </div>
+        <div class="paint-stage">
+          <div class="paint-page" id="paint-page">
+            <svg id="paint-blobs" class="paint-blobs" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-label="coloring page"></svg>
+            <img id="paint-outline" class="paint-outline" alt="" draggable="false" />
+            <svg id="paint-labels" class="paint-labels" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+          </div>
+          <div class="path-kid paint-kid" data-kid aria-hidden="true"></div>
+        </div>
+        <div id="paint-pots" class="paint-pots" aria-label="paints"></div>
+      </section>
+
       <div id="cheer" class="cheer hidden" hidden>
         <div class="cheer-kid" data-kid aria-hidden="true"></div>
         <p class="cheer-words" id="cheer-words">All tidy!</p>
@@ -211,6 +246,8 @@
     <script src="puzzle.js"></script>
     <script src="puzzle-layout.js"></script>
     <script src="menu.js"></script>
+    <script src="paint-layouts.js"></script>
+    <script src="paint.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
