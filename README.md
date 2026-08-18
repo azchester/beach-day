@@ -1,6 +1,6 @@
 # Beach Day
 
-Three quiet beach games for a grown-up and an almost-four-year-old.
+Four quiet beach games for a grown-up and an almost-four-year-old.
 
 ## Play
 
@@ -27,11 +27,18 @@ Tap Crab Path, then Easy, Medium, or Hard.
 
 Help the crab hop to the bucket. Only the glowing squares next door are safe. Rocks and water are stuck. Six short paths; each play is a new beach. Easy stays short and open. Hard is a bigger beach with more to walk around.
 
+### Paint by Number
+
+Tap Paint by Number, then Easy, Medium, or Hard.
+
+One of eight coloring-book pictures is waiting. Tap a numbered pot, then tap every blob with that number. Wrong number? It wiggles and stays empty. Easy is 10 blobs and 4 colors. Medium is 20 and 6. Hard is 40 and 8. No timer, no score.
+
 Tap **Games** any time to come back to the menu.
 
 ## Tests
 
 ```bash
+node test/paint.test.js
 node test/game.test.js
 node test/path.test.js
 node test/puzzle.test.js
