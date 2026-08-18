@@ -572,12 +572,18 @@ body {
 .cheer.is-puzzle {
   background: transparent;
   justify-content: flex-end;
-  padding: 0 1rem 1.1rem;
+  gap: 0.55rem;
+  padding: 0 1rem 0.9rem;
   pointer-events: none;
 }
 
 .cheer.is-puzzle .cheer-kid {
-  display: none;
+  width: 7.2rem;
+  pointer-events: none;
+}
+
+.cheer.is-puzzle .cheer-words {
+  font-size: clamp(1.8rem, 5.5vw, 2.8rem);
 }
 
 .cheer.is-puzzle .cheer-words,
@@ -820,6 +826,10 @@ body {
 
   .cheer-kid {
     width: 8rem;
+  }
+
+  .cheer.is-puzzle .cheer-kid {
+    width: 5.6rem;
   }
 
   .exhibits {

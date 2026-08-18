@@ -870,7 +870,7 @@
     var width = puzzleSession.cols * puzzleCell + puzzleTab * 2;
     var height = puzzleSession.rows * puzzleCell + puzzleTab * 2;
     var stage = puzzleField.parentNode.getBoundingClientRect();
-    var banner = 150;
+    var banner = 300;
     puzzlePan.x = (stage.width - width) / 2 - minX;
     puzzlePan.y = (stage.height - banner - height) / 2 - minY;
     puzzleField.style.transform = "translate(" + puzzlePan.x + "px," + puzzlePan.y + "px)";
