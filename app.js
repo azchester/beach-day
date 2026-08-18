@@ -20,6 +20,14 @@
     "assets/kid-cele-2.png",
     "assets/kid-cele-3.png"
   ];
+  var KID_THINK = "assets/kid-think.png";
+  var KID_LOOK = "assets/kid-look.png";
+  var kidState = "still";
+  var kidIdleTimer = null;
+  var kidPoseTimer = null;
+  var kidLookFlipTimer = null;
+  var kidLastIdle = null;
+  var kidThoughtThisStretch = false;
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   var menuScreen = document.getElementById("menu-screen");
@@ -74,16 +82,19 @@
       pathAdvanceTimer = null;
     }
     stopCelebrate();
+    maybeStartKidIdle();
   }
 
   function closePuzzlePeek() {
     if (puzzlePeek) hide(puzzlePeek);
+    maybeStartKidIdle();
   }
 
   function openPuzzlePeek() {
     if (!puzzleSession || !puzzlePeek || !puzzlePeekImg) return;
     puzzlePeekImg.src = Puzzle.pictureSrc(puzzleSession);
     show(puzzlePeek);
+    stopKidIdle();
   }
 
   function peekOpen() {
@@ -93,6 +104,17 @@
   function paintKids() {
     document.querySelectorAll("[data-kid]").forEach(function (el) {
       el.innerHTML = '<img class="kid-art" src="' + KID_IDLE + '" alt="" draggable="false" />';
+    });
+    document.querySelectorAll(".kid-art").forEach(function (img) {
+      img.addEventListener("error", function () {
+        if (img.getAttribute("src") === KID_IDLE) return;
+        resetKidArt(img);
+        kidState = "still";
+      });
+    });
+    [KID_THINK, KID_LOOK].forEach(function (src) {
+      var pre = new Image();
+      pre.src = src;
     });
   }
 
@@ -114,6 +136,7 @@
   }
 
   function celebrateKid() {
+    stopKidIdle();
     stopCelebrate();
     var cheerKid = document.querySelector(".cheer-kid");
     if (reduceMotion) {
@@ -137,6 +160,140 @@
       }
       setKidSrc(KID_CELEBRATE[i]);
     }, 140);
+  }
+
+  function visibleKidHost() {
+    if (playScreen && !playScreen.hidden) return playScreen.querySelector(".sand-kid");
+    if (pathScreen && !pathScreen.hidden) return pathScreen.querySelector(".path-kid");
+    if (puzzleScreen && !puzzleScreen.hidden) return puzzleScreen.querySelector(".puzzle-kid");
+    return null;
+  }
+
+  function visibleKidArt() {
+    var host = visibleKidHost();
+    return host ? host.querySelector(".kid-art") : null;
+  }
+
+  function clearKidTimers() {
+    if (kidIdleTimer) {
+      window.clearTimeout(kidIdleTimer);
+      kidIdleTimer = null;
+    }
+    if (kidPoseTimer) {
+      window.clearTimeout(kidPoseTimer);
+      kidPoseTimer = null;
+    }
+    if (kidLookFlipTimer) {
+      window.clearTimeout(kidLookFlipTimer);
+      kidLookFlipTimer = null;
+    }
+  }
+
+  function resetKidArt(img) {
+    if (!img) return;
+    img.src = KID_IDLE;
+    img.classList.remove("is-looking-right", "is-nodding", "is-hmm", "is-fidgeting");
+  }
+
+  function stopKidIdle() {
+    clearKidTimers();
+    kidState = "still";
+    resetKidArt(visibleKidArt());
+  }
+
+  function scheduleKidIdle() {
+    if (reduceMotion) return;
+    if (kidIdleTimer) window.clearTimeout(kidIdleTimer);
+    kidIdleTimer = window.setTimeout(function () {
+      kidIdleTimer = null;
+      playKidPose(BeachKid.nextIdle(kidLastIdle, kidThoughtThisStretch, Math.random));
+    }, BeachKid.idleDelay(Math.random));
+  }
+
+  function startKidIdle() {
+    stopKidIdle();
+    kidThoughtThisStretch = false;
+    kidLastIdle = null;
+    scheduleKidIdle();
+  }
+
+  function maybeStartKidIdle() {
+    if (reduceMotion) return;
+    if (cheerEl && !cheerEl.hidden) return;
+    if (peekOpen()) return;
+    if (!visibleKidHost()) return;
+    startKidIdle();
+  }
+
+  function noteKidPlay() {
+    kidThoughtThisStretch = false;
+    if (kidIdleTimer) {
+      window.clearTimeout(kidIdleTimer);
+      kidIdleTimer = null;
+    }
+  }
+
+  function playKidPose(kind, side) {
+    if (reduceMotion) return;
+    if (!BeachKid.canStart(kidState)) return;
+    var img = visibleKidArt();
+    if (!img) return;
+    if (kidIdleTimer) {
+      window.clearTimeout(kidIdleTimer);
+      kidIdleTimer = null;
+    }
+    kidState = "posing";
+    resetKidArt(img);
+    if (kind === "think") {
+      img.src = KID_THINK;
+      kidThoughtThisStretch = true;
+      kidLastIdle = "think";
+    } else if (kind === "glance" || kind === "look") {
+      img.src = KID_LOOK;
+      if (kind === "glance" && side === "right") img.classList.add("is-looking-right");
+      if (kind === "look") {
+        kidLastIdle = "look";
+        kidLookFlipTimer = window.setTimeout(function () {
+          kidLookFlipTimer = null;
+          img.classList.add("is-looking-right");
+        }, Math.floor(BeachKid.POSE_MS.look / 2));
+      }
+    } else if (kind === "nod") {
+      img.classList.add("is-nodding");
+    } else if (kind === "hmm") {
+      img.classList.add("is-hmm");
+    } else if (kind === "fidget") {
+      img.classList.add("is-fidgeting");
+      kidLastIdle = "fidget";
+    }
+    var ms = BeachKid.POSE_MS[kind] || 600;
+    kidPoseTimer = window.setTimeout(function () {
+      kidPoseTimer = null;
+      resetKidArt(img);
+      kidState = "still";
+      scheduleKidIdle();
+    }, ms);
+  }
+
+  function reactKid(kind, info, targetEl) {
+    if (reduceMotion) return;
+    noteKidPlay();
+    if (!BeachKid.shouldReact(kind, info || {})) {
+      // A winning move is about to cheer; do not arm an idle under the overlay.
+      if (kidState === "still" && !(info && info.won)) scheduleKidIdle();
+      return;
+    }
+    if (!BeachKid.canStart(kidState)) return;
+    var side;
+    if (kind === "glance" && targetEl) {
+      var host = visibleKidHost();
+      if (host) {
+        var kr = host.getBoundingClientRect();
+        var tr = targetEl.getBoundingClientRect();
+        side = BeachKid.glanceSide(kr.left + kr.width / 2, tr.left + tr.width / 2);
+      }
+    }
+    playKidPose(kind, side);
   }
 
   function pieceSrc(kind, variant, color) {
@@ -187,6 +344,7 @@
   }
 
   function goMenu() {
+    stopKidIdle();
     if (cheerTimer) window.clearTimeout(cheerTimer);
     if (hopTimer) window.clearTimeout(hopTimer);
     activeGame = null;
