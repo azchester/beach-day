@@ -21,10 +21,10 @@
     navy: "#2a3a6a"
   };
   var PALETTES = {
-    sun: ["sunflower", "orange", "sky", "kelp", "sand", "water", "coral", "peach"],
-    crab: ["coral", "sand", "sky", "kelp", "orange", "water", "peach", "sunflower"],
-    sandcastle: ["sand", "orange", "sky", "navy", "coral", "kelp", "sunflower", "water"],
-    fish: ["water", "sunflower", "sky", "navy", "coral", "kelp", "orange", "peach"],
+    sun: ["sunflower", "orange", "sky", "sand", "water", "kelp", "coral", "peach"],
+    crab: ["coral", "sand", "sky", "water", "orange", "kelp", "peach", "sunflower"],
+    sandcastle: ["sand", "orange", "sky", "navy", "coral", "water", "sunflower", "kelp"],
+    fish: ["sunflower", "water", "sky", "navy", "coral", "kelp", "orange", "sand"],
     starfish: ["orange", "sand", "water", "sky", "coral", "sunflower", "peach", "kelp"],
     boat: ["coral", "peach", "sky", "water", "sunflower", "navy", "sand", "orange"],
     shell: ["peach", "orange", "sand", "kelp", "sunflower", "water", "coral", "sky"],
@@ -130,10 +130,6 @@
     return PICTURES[clampPicture(session.pictureIndex)];
   }
 
-  function pictureSrc(session) {
-    return "assets/paint/" + pictureId(session) + "-outline.png";
-  }
-
   function selectColor(session, n) {
     var next = cloneSession(session);
     var k = maxColor(next.cells);
@@ -180,7 +176,6 @@
     hex: hex,
     layout: layout,
     pictureId: pictureId,
-    pictureSrc: pictureSrc,
     createSession: createSession,
     selectColor: selectColor,
     fill: fill,

@@ -111,16 +111,49 @@ test("pictureIndex is 0..7 and pictureId 0 is sun", function () {
   assert.ok(s.pictureIndex >= 0 && s.pictureIndex <= 7);
   assert.strictEqual(Math.floor(s.pictureIndex), s.pictureIndex);
   assert.strictEqual(Paint.pictureId(s), "sun");
-  assert.ok(Paint.pictureSrc(s).indexOf("sun-outline.png") !== -1);
+  assert.strictEqual(typeof Paint.pictureSrc, "undefined");
 });
 
 test("sun palette and colorName", function () {
   var pal = Paint.palette(0);
-  assert.deepStrictEqual(pal, ["sunflower", "orange", "sky", "kelp", "sand", "water", "coral", "peach"]);
+  assert.deepStrictEqual(pal, ["sunflower", "orange", "sky", "sand", "water", "kelp", "coral", "peach"]);
   assert.strictEqual(Paint.palette(1)[0], "coral");
   assert.strictEqual(Paint.colorName(0, 1), "sunflower");
   assert.strictEqual(Paint.colorName(0, 9), null);
   assert.strictEqual(Paint.hex("sunflower"), "#ffe14a");
+});
+
+test("every palette has sky water sand, no foam, pot 1 is subject", function () {
+  var expected = {
+    sun: ["sunflower", "orange", "sky", "sand", "water", "kelp", "coral", "peach"],
+    crab: ["coral", "sand", "sky", "water", "orange", "kelp", "peach", "sunflower"],
+    sandcastle: ["sand", "orange", "sky", "navy", "coral", "water", "sunflower", "kelp"],
+    fish: ["sunflower", "water", "sky", "navy", "coral", "kelp", "orange", "sand"],
+    starfish: ["orange", "sand", "water", "sky", "coral", "sunflower", "peach", "kelp"],
+    boat: ["coral", "peach", "sky", "water", "sunflower", "navy", "sand", "orange"],
+    shell: ["peach", "orange", "sand", "kelp", "sunflower", "water", "coral", "sky"],
+    bucket: ["coral", "sand", "peach", "navy", "sky", "orange", "sunflower", "water"]
+  };
+  var subjectOne = {
+    sun: "sunflower",
+    crab: "coral",
+    sandcastle: "sand",
+    fish: "sunflower",
+    starfish: "orange",
+    boat: "coral",
+    shell: "peach",
+    bucket: "coral"
+  };
+  Paint.PICTURES.forEach(function (id, index) {
+    var pal = Paint.palette(index);
+    assert.deepStrictEqual(pal, expected[id]);
+    assert.strictEqual(pal[0], subjectOne[id]);
+    assert.ok(pal.indexOf("sky") !== -1);
+    assert.ok(pal.indexOf("water") !== -1);
+    assert.ok(pal.indexOf("sand") !== -1);
+    assert.ok(pal.indexOf("foam") === -1);
+    assert.notStrictEqual(Paint.colorName(index, 1), "foam");
+  });
 });
 
 test("no picture uses a white or cream pot", function () {
