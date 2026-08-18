@@ -1,18 +1,11 @@
 #!/usr/bin/env python3
-"""Build organic paint-by-number facets from coloring-book outlines.
-
-Modeled on drakarah/paintbynumbersgenerator:
-  flood-fill regions, merge/split to an exact cell count, trace borders,
-  emit quadratic SVG paths, place labels at the pole of inaccessibility.
-"""
+"""Validate authored scene SVGs and emit paint-layouts.js."""
 from __future__ import print_function
 
 import collections
 import json
-import math
 import os
-import struct
-import subprocess
+import re
 import sys
 import tempfile
 
@@ -22,296 +15,267 @@ OUT_JS = os.path.join(ROOT, "paint-layouts.js")
 MENU_SVG = os.path.join(PAINT, "menu-preview.svg")
 
 PICTURES = ["sun", "crab", "sandcastle", "fish", "starfish", "boat", "shell", "bucket"]
-# One natural map per picture. No Easy / Medium / Hard, and we never
-# replace a broken contour with a bounding-box rectangle.
-COLOR_K = 6
-ABSORB_PX = 22
-TARGET = 260
-WALL_LUMA = 118
+RASTER_SIZE = 100
+MIN_CELLS = 16
+MAX_CELLS = 22
+MIN_K = 7
+MAX_K = 8
+SLIVER_FRAC = 0.012
+HOLE_FRAC = 0.02
+CURVE_SAMPLES = 6
+FOAM_NAMES = frozenset(["foam"])
+FOAM_HEX = frozenset(["#fff", "#ffffff", "#fff8ee"])
+
+# Same table as paint.js (Task 1). Do not import JS.
+PALETTES = {
+    "sun": ["sunflower", "orange", "sky", "sand", "water", "kelp", "coral", "peach"],
+    "crab": ["coral", "sand", "sky", "water", "orange", "kelp", "peach", "sunflower"],
+    "sandcastle": ["sand", "orange", "sky", "navy", "coral", "water", "sunflower", "kelp"],
+    "fish": ["sunflower", "water", "sky", "navy", "coral", "kelp", "orange", "sand"],
+    "starfish": ["orange", "sand", "water", "sky", "coral", "sunflower", "peach", "kelp"],
+    "boat": ["coral", "peach", "sky", "water", "sunflower", "navy", "sand", "orange"],
+    "shell": ["peach", "orange", "sand", "kelp", "sunflower", "water", "coral", "sky"],
+    "bucket": ["coral", "sand", "peach", "navy", "sky", "orange", "sunflower", "water"],
+}
+COLOR_HEX = {
+    "sunflower": "#ffe14a",
+    "orange": "#f4a03c",
+    "coral": "#e24b3c",
+    "peach": "#f7c09a",
+    "sand": "#f2d04a",
+    "foam": "#fff8ee",
+    "sky": "#4eb0ea",
+    "water": "#2aa8a8",
+    "kelp": "#2f7a52",
+    "navy": "#2a3a6a",
+}
+
+_PATH_TAG = re.compile(r"<path\b([^>]*)/?>", re.I)
+_ATTR = re.compile(r"""([^\s=]+)\s*=\s*("([^"]*)"|'([^']*)')""")
+_CMD = frozenset("MLHVQCZmlhvqcz")
+_NUM = re.compile(r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?")
 
 
-def load_png_as_rgb(png_path):
-    tmp = tempfile.NamedTemporaryFile(suffix=".bmp", delete=False)
-    tmp.close()
-    try:
-        subprocess.check_call(
-            ["sips", "-s", "format", "bmp", "--out", tmp.name, png_path],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        with open(tmp.name, "rb") as f:
-            data = f.read()
-    finally:
-        os.unlink(tmp.name)
-    off = struct.unpack_from("<I", data, 10)[0]
-    w, h = struct.unpack_from("<ii", data, 18)
-    bpp = struct.unpack_from("<H", data, 28)[0]
-    top_down = h < 0
-    h = abs(h)
-    row_size = ((bpp * w + 31) // 32) * 4
-    pixels = []
-    for y in range(h):
-        src_y = y if top_down else (h - 1 - y)
-        row = data[off + src_y * row_size : off + (src_y + 1) * row_size]
-        step = 4 if bpp == 32 else 3
-        for x in range(w):
-            i = x * step
-            b, g, r = row[i], row[i + 1], row[i + 2]
-            pixels.append((r, g, b))
-    return w, h, pixels
-
-
-def downsample(w, h, pixels, target):
-    scale = max(w, h) / float(target)
-    nw = max(8, int(round(w / scale)))
-    nh = max(8, int(round(h / scale)))
-    out = []
-    for y in range(nh):
-        y0 = int(y * h / nh)
-        y1 = max(y0 + 1, int((y + 1) * h / nh))
-        for x in range(nw):
-            x0 = int(x * w / nw)
-            x1 = max(x0 + 1, int((x + 1) * w / nw))
-            rs = gs = bs = n = 0
-            for yy in range(y0, y1):
-                base = yy * w
-                for xx in range(x0, x1):
-                    r, g, b = pixels[base + xx]
-                    rs += r
-                    gs += g
-                    bs += b
-                    n += 1
-            out.append((rs // n, gs // n, bs // n))
-    return nw, nh, out
-
-
-def is_wall(rgb):
-    r, g, b = rgb
-    return (0.299 * r + 0.587 * g + 0.114 * b) < WALL_LUMA
-
-
-def touches_edge(region, w, h):
-    for i in region:
-        x = i % w
-        y = i // w
-        if x == 0 or y == 0 or x == w - 1 or y == h - 1:
-            return True
-    return False
-
-
-def dilate_walls(wall, w, h, times):
-    cur = list(wall)
-    for _ in range(times):
-        nxt = list(cur)
-        for i, on in enumerate(cur):
-            if not on:
-                continue
-            x = i % w
-            y = i // w
-            for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
-                if 0 <= nx < w and 0 <= ny < h:
-                    nxt[ny * w + nx] = True
-        cur = nxt
-    return cur
-
-
-def flood_regions(w, h, pixels):
-    wall = dilate_walls([is_wall(p) for p in pixels], w, h, 1)
-    seen = [False] * (w * h)
-    interior = []
-    for i, blocked in enumerate(wall):
-        if blocked or seen[i]:
-            continue
-        stack = [i]
-        seen[i] = True
-        cells = []
-        while stack:
-            cur = stack.pop()
-            cells.append(cur)
-            x = cur % w
-            y = cur // w
-            for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
-                if nx < 0 or ny < 0 or nx >= w or ny >= h:
-                    continue
-                ni = ny * w + nx
-                if seen[ni] or wall[ni]:
-                    continue
-                seen[ni] = True
-                stack.append(ni)
-        if len(cells) < 4:
-            continue
-        region = set(cells)
-        if touches_edge(region, w, h):
-            continue
-        interior.append(region)
-    if not interior:
-        # Open line art: use the cream field inset from the page edge.
-        all_cream = [i for i, blocked in enumerate(wall) if not blocked]
-        inset = {
-            i
-            for i in all_cream
-            if 4 <= (i % w) < w - 4 and 4 <= (i // w) < h - 4
-        }
-        if inset:
-            interior.append(inset)
-    return interior, wall
-
-
-def shared_border(a, b, w):
-    n = 0
-    for i in a:
-        x = i % w
-        y = i // w
-        for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
-            if (ny * w + nx) in b:
-                n += 1
-    return n
-
-
-def centroid(region, w):
-    sx = sy = 0
-    for i in region:
-        sx += i % w
-        sy += i // w
-    n = max(1, len(region))
-    return sx / float(n), sy / float(n)
-
-
-def nearest_index(regions, i, w):
-    cx, cy = centroid(regions[i], w)
-    best = -1
-    best_d = 1e18
-    for j, other in enumerate(regions):
-        if j == i:
-            continue
-        ox, oy = centroid(other, w)
-        d = (cx - ox) ** 2 + (cy - oy) ** 2
-        if d < best_d:
-            best_d = d
-            best = j
-    return best
-
-
-def absorb_tiny(regions, w, min_size):
-    regions = [set(r) for r in regions]
-    changed = True
-    while changed:
-        changed = False
-        regions.sort(key=len)
-        i = 0
-        while i < len(regions):
-            if len(regions[i]) >= min_size:
-                break
-            best = -1
-            best_n = 0
-            for j in range(len(regions)):
-                if j == i:
-                    continue
-                n = shared_border(regions[i], regions[j], w)
-                if n > best_n:
-                    best_n = n
-                    best = j
-            if best < 0:
-                best = nearest_index(regions, i, w)
-            if best < 0:
-                i += 1
-                continue
-            regions[best] |= regions[i]
-            del regions[i]
-            changed = True
-    return regions
-
-
-def merge_smallest(regions, w):
-    regions.sort(key=len)
-    small = regions.pop(0)
-    if not regions:
-        regions.append(small)
-        return
-    best = 0
-    best_n = -1
-    for j, other in enumerate(regions):
-        edge = shared_border(small, other, w)
-        if edge > best_n:
-            best_n = edge
-            best = j
-    if best_n <= 0:
-        fake = [small] + regions
-        near = nearest_index(fake, 0, w)
-        if near > 0:
-            best = near - 1
-    regions[best] |= small
-
-
-def reduce_facets(regions, w, min_size):
-    """Keep every natural pocket. Only fold dust into a neighbor."""
-    regions = absorb_tiny([set(r) for r in regions if r], w, min_size)
-    if not regions:
-        raise SystemExit("reduce_facets emptied the picture")
-    regions.sort(key=len, reverse=True)
-    return regions
-
-
-def farthest_pixel(region, w, src):
-    sx, sy = src % w, src // w
-    best = src
-    best_d = -1
-    for i in region:
-        d = (i % w - sx) ** 2 + (i // w - sy) ** 2
-        if d > best_d:
-            best_d = d
-            best = i
-    return best
-
-
-def split_two(region, w):
-    """Cut one oversized room into two wavy pockets. Never a grid."""
-    seed = next(iter(region))
-    p1 = farthest_pixel(region, w, seed)
-    p2 = farthest_pixel(region, w, p1)
-    if p1 == p2:
-        return [region]
-    p1x, p1y = p1 % w, p1 // w
-    p2x, p2y = p2 % w, p2 // w
-    left = set()
-    right = set()
-    for i in region:
-        x = i % w
-        y = i // w
-        wobble = 22 * math.sin((x * 0.19) + (y * 0.27))
-        d1 = (x - p1x) ** 2 + (y - p1y) ** 2 + wobble
-        d2 = (x - p2x) ** 2 + (y - p2y) ** 2 - wobble
-        if d1 <= d2:
-            left.add(i)
-        else:
-            right.add(i)
-    parts = [s for s in (left, right) if len(s) >= 16]
-    return parts if len(parts) >= 2 else [region]
-
-
-def enrich_sparse(regions, w, min_cells):
-    regions = [set(r) for r in regions]
-    guard = 0
-    while len(regions) < min_cells and guard < 24:
-        guard += 1
-        regions.sort(key=len, reverse=True)
-        if len(regions[0]) < 360:
-            break
-        big = regions.pop(0)
-        parts = split_two(big, w)
-        if len(parts) < 2:
-            regions.append(big)
-            break
-        regions.extend(parts)
-    regions.sort(key=len, reverse=True)
-    return regions
-
-
-def assign_colors(regions, k):
-    out = []
-    for i, region in enumerate(regions):
-        out.append((region, (i % k) + 1))
+def _svg_attrs(blob):
+    out = {}
+    for m in _ATTR.finditer(blob):
+        key = m.group(1)
+        val = m.group(3) if m.group(3) is not None else m.group(4)
+        out[key] = val
     return out
+
+
+def parse_scene(svg_text):
+    cells = []
+    ink = []
+    for m in _PATH_TAG.finditer(svg_text):
+        attrs = _svg_attrs(m.group(1))
+        d = (attrs.get("d") or "").strip()
+        if not d:
+            continue
+        color_raw = attrs.get("data-color")
+        if color_raw is None or str(color_raw).strip() == "":
+            ink.append(d)
+            continue
+        try:
+            color = int(str(color_raw).strip())
+        except ValueError:
+            raise SystemExit("bad data-color {!r}".format(color_raw))
+        cells.append(
+            {
+                "role": attrs.get("data-role") or "",
+                "color": color,
+                "d": d,
+            }
+        )
+    return {"cells": cells, "ink": ink}
+
+
+def tokenize_path(d):
+    tokens = []
+    i = 0
+    n = len(d)
+    while i < n:
+        c = d[i]
+        if c in " \t\n\r,":
+            i += 1
+            continue
+        if c in _CMD:
+            tokens.append(c)
+            i += 1
+            continue
+        m = _NUM.match(d, i)
+        if not m:
+            raise SystemExit("bad path token at {}: {!r}".format(i, d[i : i + 12]))
+        tokens.append(m.group(0))
+        i = m.end()
+    return tokens
+
+
+def _is_cmd(tok):
+    return isinstance(tok, str) and len(tok) == 1 and tok in _CMD
+
+
+def _quad(p0, p1, p2, t):
+    u = 1.0 - t
+    return (
+        u * u * p0[0] + 2.0 * u * t * p1[0] + t * t * p2[0],
+        u * u * p0[1] + 2.0 * u * t * p1[1] + t * t * p2[1],
+    )
+
+
+def _cubic(p0, p1, p2, p3, t):
+    u = 1.0 - t
+    return (
+        u * u * u * p0[0] + 3.0 * u * u * t * p1[0] + 3.0 * u * t * t * p2[0] + t * t * t * p3[0],
+        u * u * u * p0[1] + 3.0 * u * u * t * p1[1] + 3.0 * u * t * t * p2[1] + t * t * t * p3[1],
+    )
+
+
+def path_rings(d, samples=CURVE_SAMPLES):
+    tokens = tokenize_path(d)
+    rings = []
+    ring = []
+    i = 0
+    cx = cy = 0.0
+    sx = sy = 0.0
+
+    def flush():
+        if len(ring) >= 2:
+            rings.append(list(ring))
+        del ring[:]
+
+    def add(pt):
+        ring.append(pt)
+
+    def take_pair():
+        nonlocal i
+        if i + 1 >= len(tokens) or _is_cmd(tokens[i]) or _is_cmd(tokens[i + 1]):
+            raise SystemExit("path command missing x y")
+        x, y = float(tokens[i]), float(tokens[i + 1])
+        i += 2
+        return x, y
+
+    while i < len(tokens):
+        raw = tokens[i]
+        if not _is_cmd(raw):
+            raise SystemExit("expected path command, got {!r}".format(raw))
+        i += 1
+        if raw in "mlhvqc":
+            raise SystemExit("relative path command {} not supported".format(raw))
+        cmd = "Z" if raw in "Zz" else raw
+        if cmd == "M":
+            if ring:
+                flush()
+            cx, cy = take_pair()
+            sx, sy = cx, cy
+            add((cx, cy))
+            while i + 1 < len(tokens) and not _is_cmd(tokens[i]):
+                cx, cy = take_pair()
+                add((cx, cy))
+        elif cmd == "L":
+            while i + 1 < len(tokens) and not _is_cmd(tokens[i]):
+                cx, cy = take_pair()
+                add((cx, cy))
+        elif cmd == "H":
+            while i < len(tokens) and not _is_cmd(tokens[i]):
+                cx = float(tokens[i])
+                i += 1
+                add((cx, cy))
+        elif cmd == "V":
+            while i < len(tokens) and not _is_cmd(tokens[i]):
+                cy = float(tokens[i])
+                i += 1
+                add((cx, cy))
+        elif cmd == "Q":
+            while i + 3 < len(tokens) and not _is_cmd(tokens[i]):
+                x1, y1 = take_pair()
+                x, y = take_pair()
+                for s in range(1, samples + 1):
+                    add(_quad((cx, cy), (x1, y1), (x, y), s / float(samples)))
+                cx, cy = x, y
+        elif cmd == "C":
+            while i + 5 < len(tokens) and not _is_cmd(tokens[i]):
+                x1, y1 = take_pair()
+                x2, y2 = take_pair()
+                x, y = take_pair()
+                for s in range(1, samples + 1):
+                    add(_cubic((cx, cy), (x1, y1), (x2, y2), (x, y), s / float(samples)))
+                cx, cy = x, y
+        elif cmd == "Z":
+            if ring and ring[-1] != (sx, sy):
+                add((sx, sy))
+            cx, cy = sx, sy
+            flush()
+        else:
+            raise SystemExit("unsupported path command {}".format(raw))
+    flush()
+    return rings
+
+
+def flatten_path(d, samples=CURVE_SAMPLES):
+    pts = []
+    for ring in path_rings(d, samples):
+        pts.extend(ring)
+    return pts
+
+
+def _even_odd(x, y, rings):
+    inside = False
+    for ring in rings:
+        n = len(ring)
+        if n < 2:
+            continue
+        j = n - 1
+        for i in range(n):
+            xi, yi = ring[i]
+            xj, yj = ring[j]
+            if (yi > y) != (yj > y):
+                denom = yj - yi
+                if denom != 0 and x < (xj - xi) * (y - yi) / float(denom) + xi:
+                    inside = not inside
+            j = i
+    return inside
+
+
+def raster_path(d, size=RASTER_SIZE):
+    rings = path_rings(d)
+    inside = set()
+    for y in range(size):
+        py = y + 0.5
+        for x in range(size):
+            if _even_odd(x + 0.5, py, rings):
+                inside.add(y * size + x)
+    return inside
+
+
+def unique_ring(points):
+    ring = list(points)
+    if len(ring) >= 2 and ring[0] == ring[-1]:
+        ring = ring[:-1]
+    uniq = []
+    for p in ring:
+        if not uniq or (abs(uniq[-1][0] - p[0]) > 0.05 or abs(uniq[-1][1] - p[1]) > 0.05):
+            uniq.append(p)
+    return uniq
+
+
+def is_axis_box(points):
+    uniq = unique_ring(points)
+    if len(uniq) != 4:
+        return False
+    xs = [p[0] for p in uniq]
+    ys = [p[1] for p in uniq]
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+    if max_x - min_x < 1 or max_y - min_y < 1:
+        return False
+    for p in uniq:
+        on_x = abs(p[0] - min_x) < 0.4 or abs(p[0] - max_x) < 0.4
+        on_y = abs(p[1] - min_y) < 0.4 or abs(p[1] - max_y) < 0.4
+        if not (on_x and on_y):
+            return False
+    return True
 
 
 def label_point(region, w, h):
@@ -350,220 +314,69 @@ def label_point(region, w, h):
     return (best % w) + 0.5, (best // w) + 0.5
 
 
-def walk_loop(nxt, start):
-    path = [start]
-    used = set()
-    cur = start
-    for _ in range(len(nxt) * 4 + 8):
-        opts = [p for p in nxt[cur] if (cur, p) not in used]
-        if not opts:
-            break
-        nxtp = opts[0]
-        used.add((cur, nxtp))
-        cur = nxtp
-        if cur == start:
-            break
-        path.append(cur)
-    if path[0] != path[-1]:
-        path.append(path[0])
-    return path
+def _closed_d(d):
+    return bool(re.search(r"[Zz]\s*$", d or ""))
 
 
-def contour(region, w, h):
-    nxt = collections.defaultdict(list)
-    for i in region:
-        x = i % w
-        y = i // w
-        if y == 0 or ((y - 1) * w + x) not in region:
-            nxt[(x, y)].append((x + 1, y))
-        if x + 1 >= w or (y * w + x + 1) not in region:
-            nxt[(x + 1, y)].append((x + 1, y + 1))
-        if y + 1 >= h or ((y + 1) * w + x) not in region:
-            nxt[(x + 1, y + 1)].append((x, y + 1))
-        if x == 0 or (y * w + x - 1) not in region:
-            nxt[(x, y + 1)].append((x, y))
-    if not nxt:
-        return []
-    unused = set(nxt.keys())
-    loops = []
-    while unused:
-        start = min(unused, key=lambda p: (p[1], p[0]))
-        path = walk_loop(nxt, start)
-        if len(path) >= 4:
-            loops.append(path)
-        unused.difference_update(path)
-        unused.discard(start)
-    if not loops:
-        return []
-    return max(loops, key=len)
+def _color_is_foam(name):
+    if name in FOAM_NAMES:
+        return True
+    hexv = (COLOR_HEX.get(name) or "").lower()
+    return hexv in FOAM_HEX
 
 
-def rdp(points, eps):
-    if len(points) < 3:
-        return points
-
-    def dist(a, b, p):
-        ax, ay = a
-        bx, by = b
-        px, py = p
-        dx, dy = bx - ax, by - ay
-        if dx == 0 and dy == 0:
-            return math.hypot(px - ax, py - ay)
-        t = ((px - ax) * dx + (py - ay) * dy) / float(dx * dx + dy * dy)
-        t = max(0.0, min(1.0, t))
-        return math.hypot(px - (ax + t * dx), py - (ay + t * dy))
-
-    dmax = 0.0
-    idx = 0
-    for i in range(1, len(points) - 1):
-        d = dist(points[0], points[-1], points[i])
-        if d > dmax:
-            idx = i
-            dmax = d
-    if dmax > eps:
-        left = rdp(points[: idx + 1], eps)
-        right = rdp(points[idx:], eps)
-        return left[:-1] + right
-    return [points[0], points[-1]]
-
-
-def unique_ring(points):
-    ring = list(points)
-    if len(ring) >= 2 and ring[0] == ring[-1]:
-        ring = ring[:-1]
-    uniq = []
-    for p in ring:
-        if not uniq or (abs(uniq[-1][0] - p[0]) > 0.05 or abs(uniq[-1][1] - p[1]) > 0.05):
-            uniq.append(p)
-    return uniq
-
-
-def is_axis_box(points):
-    uniq = unique_ring(points)
-    if len(uniq) != 4:
-        return False
-    xs = [p[0] for p in uniq]
-    ys = [p[1] for p in uniq]
-    min_x, max_x = min(xs), max(xs)
-    min_y, max_y = min(ys), max(ys)
-    if max_x - min_x < 1 or max_y - min_y < 1:
-        return False
-    for p in uniq:
-        on_x = abs(p[0] - min_x) < 0.4 or abs(p[0] - max_x) < 0.4
-        on_y = abs(p[1] - min_y) < 0.4 or abs(p[1] - max_y) < 0.4
-        if not (on_x and on_y):
-            return False
-    return True
-
-
-def bulge_box(points):
-    ring = unique_ring(points)
-    out = []
-    n = len(ring)
-    for i in range(n):
-        a = ring[i]
-        b = ring[(i + 1) % n]
-        out.append(a)
-        mx = (a[0] + b[0]) / 2.0
-        my = (a[1] + b[1]) / 2.0
-        dx = b[0] - a[0]
-        dy = b[1] - a[1]
-        length = math.hypot(dx, dy) or 1.0
-        nx, ny = -dy / length, dx / length
-        wobble = max(2.2, length * 0.09)
-        sign = 1 if (int(mx * 13 + my * 7) % 2 == 0) else -1
-        out.append((mx + nx * wobble * sign, my + ny * wobble * sign))
-    out.append(out[0])
-    return out
-
-
-def path_to_d(points, w, h):
-    if len(points) < 3:
-        return ""
-    pts = rdp(points, 1.35)
-    if len(pts) < 3:
-        pts = points
-    if is_axis_box(pts):
-        pts = rdp(points, 0.4)
-    if is_axis_box(pts):
-        pts = bulge_box(pts)
-    if len(pts) < 3:
-        return ""
-    sx = 100.0 / w
-    sy = 100.0 / h
-
-    def xy(p):
-        return p[0] * sx, p[1] * sy
-
-    x0, y0 = xy(pts[0])
-    parts = ["M{:.2f} {:.2f}".format(x0, y0)]
-    for i in range(1, len(pts)):
-        x1, y1 = xy(pts[i])
-        px, py = xy(pts[i - 1])
-        mx, my = (px + x1) / 2.0, (py + y1) / 2.0
-        parts.append("Q{:.2f} {:.2f} {:.2f} {:.2f}".format(mx, my, x1, y1))
-    parts.append("Z")
-    return "".join(parts)
-
-
-def build_picture(name):
-    png = os.path.join(PAINT, name + "-outline.png")
-    w0, h0, pix0 = load_png_as_rgb(png)
-    w, h, pix = downsample(w0, h0, pix0, TARGET)
-    raw, _wall = flood_regions(w, h, pix)
-    if not raw:
-        raise SystemExit("no regions in " + name)
-    fitted = enrich_sparse(reduce_facets(raw, w, ABSORB_PX), w, 8)
-    leftover = []
-    keep = []
-    for region in fitted:
-        loop = contour(region, w, h)
-        d = path_to_d(loop, w, h) if len(loop) >= 3 else ""
-        if d:
-            keep.append(region)
-        else:
-            leftover.append(region)
-    for region in leftover:
-        if not keep:
-            continue
-        fake = [region] + keep
-        near = nearest_index(fake, 0, w)
-        if near > 0:
-            keep[near - 1] |= region
-    if not keep:
-        raise SystemExit("{} produced no organic cells".format(name))
-    k = min(COLOR_K, max(3, len(keep)))
-    colored = assign_colors(keep, k)
-    cells = []
-    for region, color in colored:
-        loop = contour(region, w, h)
-        d = path_to_d(loop, w, h)
-        if not d:
-            continue
-        lx, ly = label_point(region, w, h)
-        cells.append(
-            {
-                "color": color,
-                "d": d,
-                "lx": round(lx * 100.0 / w, 2),
-                "ly": round(ly * 100.0 / h, 2),
-            }
+def validate(name, cells, palette_names):
+    size = RASTER_SIZE
+    n = len(cells)
+    if n < MIN_CELLS or n > MAX_CELLS:
+        raise SystemExit("{} cell count {} not in {}..{}".format(name, n, MIN_CELLS, MAX_CELLS))
+    used = sorted(set(c["color"] for c in cells))
+    k = used[-1] if used else 0
+    if k < MIN_K or k > MAX_K or used != list(range(1, k + 1)):
+        raise SystemExit("{} colors {} not exactly 1..K with K in {}..{}".format(name, used, MIN_K, MAX_K))
+    used_names = []
+    for color in used:
+        if color < 1 or color > len(palette_names):
+            raise SystemExit("{} color {} is outside the palette".format(name, color))
+        cname = palette_names[color - 1]
+        if _color_is_foam(cname):
+            raise SystemExit("{} color {} maps to foam/white ({})".format(name, color, cname))
+        used_names.append(cname)
+    for needed in ("sky", "water", "sand"):
+        if needed not in used_names:
+            raise SystemExit("{} missing {}".format(name, needed))
+    area = float(size * size)
+    min_cell = SLIVER_FRAC * area
+    union = set()
+    for i, cell in enumerate(cells):
+        d = cell.get("d") or ""
+        if not _closed_d(d):
+            raise SystemExit("{} cell {} is an open path".format(name, i))
+        pts = flatten_path(d)
+        if is_axis_box(pts):
+            raise SystemExit("{} cell {} is an axis-aligned rectangle".format(name, i))
+        pix = raster_path(d, size)
+        if len(pix) < min_cell:
+            raise SystemExit(
+                "{} cell {} raster {} < 1.2% of {}".format(name, i, len(pix), int(area))
+            )
+        union |= pix
+    uncovered = size * size - len(union)
+    if uncovered > HOLE_FRAC * area:
+        raise SystemExit(
+            "{} uncovered {} pixels > 2% of {}".format(name, uncovered, int(area))
         )
-    if not cells:
-        raise SystemExit("{} produced no cells".format(name))
-    print("  {}  cells={}".format(name, len(cells)))
-    return cells
 
 
 def js_escape(s):
     return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
-def write_js(all_layouts):
+def write_js(all_layouts, all_ink):
     lines = [
         "/**",
-        " * Organic paint-by-number facets generated from coloring-book outlines.",
-        " * Path style follows drakarah/paintbynumbersgenerator (quadratic borders).",
+        " * Paint-by-number facets from authored scene SVGs.",
+        " * Generated by scripts/build-paint-layouts.py — do not edit by hand.",
         " */",
         "(function (root) {",
         '  "use strict";',
@@ -571,19 +384,28 @@ def write_js(all_layouts):
     ]
     for name in PICTURES:
         lines.append("    " + json.dumps(name) + ": [")
-        for cell in all_layouts[name]:
+        for cell in all_layouts.get(name, []):
             lines.append(
                 "      { color: %d, d: \"%s\", lx: %s, ly: %s },"
                 % (cell["color"], js_escape(cell["d"]), cell["lx"], cell["ly"])
             )
         lines.append("    ],")
+    lines.append("  };")
+    lines.append("  var PAINT_INK = {")
+    for name in PICTURES:
+        lines.append("    " + json.dumps(name) + ": [")
+        for d in all_ink.get(name, []):
+            lines.append('      "%s",' % js_escape(d))
+        lines.append("    ],")
     lines.extend(
         [
             "  };",
-            "  if (typeof module !== \"undefined\" && module.exports) {",
+            '  if (typeof module !== "undefined" && module.exports) {',
             "    module.exports = PAINT_FACETS;",
+            "    module.exports.INK = PAINT_INK;",
             "  } else {",
             "    root.PAINT_FACETS = PAINT_FACETS;",
+            "    root.PAINT_INK = PAINT_INK;",
             "  }",
             "})(typeof window !== \"undefined\" ? window : typeof global !== \"undefined\" ? global : this);",
             "",
@@ -615,13 +437,170 @@ def write_menu_preview(sun_cells):
     print("wrote", MENU_SVG)
 
 
+def _pt(x, y):
+    return "{:.2f} {:.2f}".format(x, y)
+
+
+def _h_bulge(c, y_index, xs, ys, bump=3.2):
+    mx = (xs[c] + xs[c + 1]) / 2.0
+    my = ys[y_index]
+    # Keep the outer frame on the viewBox so the blobs still tile the square.
+    if abs(my) < 1e-9 or abs(my - 100) < 1e-9:
+        return mx, my
+    dy = bump if (c + y_index) % 2 == 0 else -bump
+    return mx, my + dy
+
+
+def _v_bulge(x_index, r, xs, ys, bump=3.2):
+    mx = xs[x_index]
+    my = (ys[r] + ys[r + 1]) / 2.0
+    if abs(mx) < 1e-9 or abs(mx - 100) < 1e-9:
+        return mx, my
+    dx = bump if (x_index + r) % 2 == 0 else -bump
+    return mx + dx, my
+
+
+def _grid(cols, rows):
+    xs = [100.0 * i / float(cols) for i in range(cols + 1)]
+    ys = [100.0 * i / float(rows) for i in range(rows + 1)]
+    return xs, ys
+
+
+def _blob_d(c, r, xs, ys):
+    tl = (xs[c], ys[r])
+    tr = (xs[c + 1], ys[r])
+    br = (xs[c + 1], ys[r + 1])
+    bl = (xs[c], ys[r + 1])
+    top = _h_bulge(c, r, xs, ys)
+    right = _v_bulge(c + 1, r, xs, ys)
+    bot = _h_bulge(c, r + 1, xs, ys)
+    left = _v_bulge(c, r, xs, ys)
+    return "M{}L{}L{}L{}L{}L{}L{}L{}Z".format(
+        _pt(*tl), _pt(*top), _pt(*tr), _pt(*right), _pt(*br), _pt(*bot), _pt(*bl), _pt(*left)
+    )
+
+
+def _rect_d(c, r, xs, ys):
+    x0, x1 = xs[c], xs[c + 1]
+    y0, y1 = ys[r], ys[r + 1]
+    return "M{:.2f} {:.2f}H{:.2f}V{:.2f}H{:.2f}Z".format(x0, y0, x1, y1, x0)
+
+
+def _selftest_colors(n):
+    colors = [((i % 8) + 1) for i in range(n)]
+    for required in (3, 4, 5):
+        if required not in colors:
+            colors[required - 1] = required
+    return colors
+
+
+def _write_grid_svg(path, maker):
+    cols, rows = 6, 3
+    xs, ys = _grid(cols, rows)
+    colors = _selftest_colors(cols * rows)
+    parts = ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">']
+    i = 0
+    for r in range(rows):
+        for c in range(cols):
+            color = colors[i]
+            role = "sky" if color == 3 else "sand" if color == 4 else "water" if color == 5 else "cell"
+            parts.append(
+                '<path data-role="{}" data-color="{}" d="{}"/>'.format(role, color, maker(c, r, xs, ys))
+            )
+            i += 1
+    parts.append('<path d="M42 48Q50 56 58 48" fill="none"/>')
+    parts.append("</svg>")
+    with open(path, "w") as f:
+        f.write("".join(parts))
+
+
+def _tmp_svg(maker):
+    fd, path = tempfile.mkstemp(prefix="paint-selftest-", suffix=".svg")
+    os.close(fd)
+    try:
+        _write_grid_svg(path, maker)
+        with open(path) as f:
+            return parse_scene(f.read())
+    finally:
+        if os.path.isfile(path):
+            os.unlink(path)
+
+
+def run_selftest():
+    before = os.path.getmtime(OUT_JS) if os.path.isfile(OUT_JS) else None
+    q_pts = flatten_path("M0 0Q0 10 10 10Z")
+    c_pts = flatten_path("M0 0C0 5 5 10 10 10Z")
+    if len(q_pts) < 7 or len(c_pts) < 7:
+        raise SystemExit("Q/C flatten should sample 6 curve points")
+    if not is_axis_box(flatten_path("M0 0H10V10H0Z")):
+        raise SystemExit("H/V rectangle should be an axis box")
+
+    good = _tmp_svg(_blob_d)
+    if len(good["cells"]) != 18:
+        raise SystemExit("selftest good svg should have 18 cells")
+    if not good["ink"]:
+        raise SystemExit("selftest good svg should keep ink-only paths")
+    validate("selftest", good["cells"], PALETTES["sun"])
+    for cell in good["cells"]:
+        pix = raster_path(cell["d"])
+        lx, ly = label_point(pix, RASTER_SIZE, RASTER_SIZE)
+        if not (0 <= lx <= 100 and 0 <= ly <= 100):
+            raise SystemExit("selftest label out of range")
+
+    rect = _tmp_svg(_rect_d)
+    if len(rect["cells"]) != 18:
+        raise SystemExit("selftest rect svg should have 18 cells")
+    raised = False
+    try:
+        validate("selftest-rect", rect["cells"], PALETTES["sun"])
+    except SystemExit:
+        raised = True
+    if not raised:
+        raise SystemExit("expected rectangle cell to fail validate")
+
+    after = os.path.getmtime(OUT_JS) if os.path.isfile(OUT_JS) else None
+    if after != before:
+        raise SystemExit("selftest must not write paint-layouts.js")
+    print("selftest ok")
+    return 0
+
+
+def load_picture(name):
+    path = os.path.join(PAINT, "{}-scene.svg".format(name))
+    if not os.path.isfile(path):
+        raise SystemExit("missing {}".format(path))
+    with open(path) as f:
+        scene = parse_scene(f.read())
+    validate(name, scene["cells"], PALETTES[name])
+    layout = []
+    for cell in scene["cells"]:
+        pix = raster_path(cell["d"], RASTER_SIZE)
+        lx, ly = label_point(pix, RASTER_SIZE, RASTER_SIZE)
+        layout.append(
+            {
+                "color": cell["color"],
+                "d": cell["d"],
+                "lx": round(lx, 2),
+                "ly": round(ly, 2),
+            }
+        )
+    print("  {}  cells={}".format(name, len(layout)))
+    return layout, scene["ink"]
+
+
 def main():
+    if "--selftest" in sys.argv:
+        return run_selftest()
     all_layouts = {}
+    all_ink = {}
     for name in PICTURES:
         print("facet", name)
-        all_layouts[name] = build_picture(name)
-    write_js(all_layouts)
+        layout, ink = load_picture(name)
+        all_layouts[name] = layout
+        all_ink[name] = ink
+    write_js(all_layouts, all_ink)
     write_menu_preview(all_layouts["sun"])
+    return 0
 
 
 if __name__ == "__main__":
