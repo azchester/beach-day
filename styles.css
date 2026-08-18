@@ -692,7 +692,7 @@ body {
   appearance: none;
   position: absolute;
   right: 0.4rem;
-  bottom: 5.3rem;
+  bottom: 12rem;
   z-index: 6;
   display: flex;
   align-items: center;
@@ -783,7 +783,7 @@ body {
   }
 
   .puzzle-tidy {
-    bottom: 4.1rem;
+    bottom: 8.2rem;
     font-size: 0.92rem;
   }
 }
