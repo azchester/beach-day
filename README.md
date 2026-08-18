@@ -41,4 +41,5 @@ node test/path.test.js
 node test/puzzle.test.js
 node test/puzzle-layout.test.js
 node test/menu.test.js
+node test/kid.test.js
 ```
