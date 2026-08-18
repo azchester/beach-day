@@ -22,12 +22,10 @@ OUT_JS = os.path.join(ROOT, "paint-layouts.js")
 MENU_SVG = os.path.join(PAINT, "menu-preview.svg")
 
 PICTURES = ["sun", "crab", "sandcastle", "fish", "starfish", "boat", "shell", "bucket"]
-COUNTS = {
-    "easy": [4, 3, 2, 1],
-    "medium": [5, 4, 3, 3, 3, 2],
-    "hard": [8, 7, 6, 5, 5, 4, 3, 2],
-}
-CELL_N = {"easy": 10, "medium": 20, "hard": 40}
+COLOR_K = {"easy": 4, "medium": 6, "hard": 8}
+MAX_FACETS = {"easy": 10, "medium": 20, "hard": 40}
+# GitHub-style: merge small natural pockets. Never slice into rectangles.
+ABSORB_PX = {"easy": 90, "medium": 40, "hard": 18}
 TARGET = 260
 WALL_LUMA = 118
 
@@ -224,24 +222,6 @@ def absorb_tiny(regions, w, min_size):
     return regions
 
 
-def split_region(region, w):
-    xs = [i % w for i in region]
-    ys = [i // w for i in region]
-    if max(xs) - min(xs) >= max(ys) - min(ys):
-        mid = sorted(xs)[len(xs) // 2]
-        a = {i for i in region if (i % w) < mid}
-    else:
-        mid = sorted(ys)[len(ys) // 2]
-        a = {i for i in region if (i // w) < mid}
-    b = region - a
-    if len(a) < 3 or len(b) < 3:
-        items = list(region)
-        mid = len(items) // 2
-        a = set(items[:mid])
-        b = set(items[mid:])
-    return a, b
-
-
 def merge_smallest(regions, w):
     regions.sort(key=len)
     small = regions.pop(0)
@@ -263,75 +243,21 @@ def merge_smallest(regions, w):
     regions[best] |= small
 
 
-def fit_count(regions, w, n, min_half=90):
-    regions = [set(r) for r in regions if r]
+def reduce_facets(regions, w, min_size, max_n):
+    """FacetReducer analog: drop tiny pockets, then merge down to a cap."""
+    regions = absorb_tiny([set(r) for r in regions if r], w, min_size)
     if not regions:
-        raise SystemExit("fit_count given no regions")
-    guard = 0
-    while len(regions) > n and guard < 800:
-        merge_smallest(regions, w)
-        guard += 1
-    floor = min_half
-    while len(regions) < n and guard < 800:
-        idx = None
-        regions.sort(key=len)
-        for i in range(len(regions) - 1, -1, -1):
-            if len(regions[i]) >= 2 * floor:
-                idx = i
-                break
-        if idx is None:
-            floor = max(12, floor // 2)
-            if floor <= 12:
-                idx = len(regions) - 1
-                if len(regions[idx]) < 8:
-                    break
-            else:
-                guard += 1
-                continue
-        big = regions.pop(idx)
-        a, b = split_region(big, w)
-        if not a or not b:
-            regions.append(big)
-            break
-        regions.append(a)
-        regions.append(b)
-        guard += 1
-    regions = [r for r in regions if r]
-    while len(regions) > n:
+        raise SystemExit("reduce_facets emptied the picture")
+    while len(regions) > max_n:
         merge_smallest(regions, w)
     regions.sort(key=len, reverse=True)
-    if len(regions) != n:
-        raise SystemExit("fit_count wanted %d got %d" % (n, len(regions)))
     return regions
 
 
-def grow_small(regions, w, n, min_keep):
-    regions = [set(r) for r in regions if r]
-    for _ in range(240):
-        regions.sort(key=len)
-        if not regions or len(regions[0]) >= min_keep:
-            break
-        if len(regions) == 1:
-            break
-        merge_smallest(regions, w)
-        regions.sort(key=len)
-        big = regions.pop()
-        if len(big) < min_keep * 2:
-            regions.append(big)
-            break
-        a, b = split_region(big, w)
-        regions.append(a)
-        regions.append(b)
-    return fit_count(regions, w, n, min_half=max(12, min_keep // 2))
-
-
-def assign_colors(regions, counts):
-    order = []
-    for color, k in enumerate(counts, start=1):
-        order.extend([color] * k)
+def assign_colors(regions, k):
     out = []
-    for region, color in zip(regions, order):
-        out.append((region, color))
+    for i, region in enumerate(regions):
+        out.append((region, (i % k) + 1))
     return out
 
 
@@ -461,18 +387,13 @@ def build_picture(name):
     png = os.path.join(PAINT, name + "-outline.png")
     w0, h0, pix0 = load_png_as_rgb(png)
     w, h, pix = downsample(w0, h0, pix0, TARGET)
-    regions, _wall = flood_regions(w, h, pix)
-    # Swallow boom/mast/rib slivers into the big subject before we split.
-    regions = absorb_tiny(regions, w, min_size=140)
-    if not regions:
+    raw, _wall = flood_regions(w, h, pix)
+    if not raw:
         raise SystemExit("no regions in " + name)
     layouts = {}
-    min_half = {"easy": 180, "medium": 110, "hard": 60}
-    min_keep = {"easy": 220, "medium": 130, "hard": 70}
-    for diff, n in CELL_N.items():
-        fitted = fit_count(regions, w, n, min_half=min_half[diff])
-        fitted = grow_small(fitted, w, n, min_keep[diff])
-        colored = assign_colors(fitted, COUNTS[diff])
+    for diff in ("easy", "medium", "hard"):
+        fitted = reduce_facets(raw, w, ABSORB_PX[diff], MAX_FACETS[diff])
+        colored = assign_colors(fitted, COLOR_K[diff])
         cells = []
         for region, color in colored:
             xs = [i % w for i in region]
@@ -501,10 +422,8 @@ def build_picture(name):
                     "ly": round(ly * 100.0 / h, 2),
                 }
             )
-        if len(cells) != n:
-            raise SystemExit(
-                "{} {} expected {} cells, got {}".format(name, diff, n, len(cells))
-            )
+        if not cells:
+            raise SystemExit("{} {} produced no cells".format(name, diff))
         layouts[diff] = cells
     print("  {}  easy={} medium={} hard={}".format(
         name, len(layouts["easy"]), len(layouts["medium"]), len(layouts["hard"])

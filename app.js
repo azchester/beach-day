@@ -975,9 +975,14 @@
     });
 
     var pots = Paint.palette(paintSession.pictureIndex, paintSession.difficulty);
+    var used = {};
+    layout.forEach(function (cell) {
+      used[cell.color] = true;
+    });
     paintPots.innerHTML = "";
     pots.forEach(function (name, i) {
       var n = i + 1;
+      if (!used[n]) return;
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "paint-pot";
