@@ -21,14 +21,14 @@
     navy: "#2a3a6a"
   };
   var PALETTES = {
-    sun: ["sunflower", "orange", "sky", "foam", "sand", "water", "coral", "peach"],
-    crab: ["coral", "sand", "foam", "kelp", "orange", "water", "peach", "sunflower"],
-    sandcastle: ["sand", "orange", "sky", "navy", "foam", "kelp", "sunflower", "water"],
-    fish: ["water", "sunflower", "foam", "navy", "coral", "kelp", "orange", "peach"],
-    starfish: ["orange", "sand", "water", "foam", "coral", "sunflower", "peach", "kelp"],
-    boat: ["coral", "foam", "sky", "water", "sunflower", "navy", "sand", "orange"],
-    shell: ["peach", "orange", "sand", "foam", "sunflower", "water", "coral", "sky"],
-    bucket: ["coral", "sand", "foam", "navy", "sky", "orange", "sunflower", "water"]
+    sun: ["sunflower", "orange", "sky", "kelp", "sand", "water", "coral", "peach"],
+    crab: ["coral", "sand", "sky", "kelp", "orange", "water", "peach", "sunflower"],
+    sandcastle: ["sand", "orange", "sky", "navy", "coral", "kelp", "sunflower", "water"],
+    fish: ["water", "sunflower", "sky", "navy", "coral", "kelp", "orange", "peach"],
+    starfish: ["orange", "sand", "water", "sky", "coral", "sunflower", "peach", "kelp"],
+    boat: ["coral", "peach", "sky", "water", "sunflower", "navy", "sand", "orange"],
+    shell: ["peach", "orange", "sand", "kelp", "sunflower", "water", "coral", "sky"],
+    bucket: ["coral", "sand", "peach", "navy", "sky", "orange", "sunflower", "water"]
   };
 
   var FACETS =
@@ -37,18 +37,6 @@
       : typeof require === "function"
         ? require("./paint-layouts.js")
         : {};
-
-  function normalizeDifficulty(value) {
-    if (value === "easy" || value === "hard" || value === "medium") return value;
-    return "medium";
-  }
-
-  function grid(difficulty) {
-    var d = normalizeDifficulty(difficulty);
-    if (d === "easy") return { cells: 10, colors: 4 };
-    if (d === "hard") return { cells: 40, colors: 8 };
-    return { cells: 20, colors: 6 };
-  }
 
   function pickIndex(n, random) {
     if (n <= 0) return 0;
@@ -66,9 +54,9 @@
     return i;
   }
 
-  function palette(pictureIndex, difficulty) {
+  function palette(pictureIndex) {
     var id = PICTURES[clampPicture(pictureIndex)];
-    return PALETTES[id].slice(0, grid(difficulty).colors);
+    return PALETTES[id].slice();
   }
 
   function colorName(pictureIndex, colorNumber) {
@@ -80,11 +68,14 @@
     return COLOR_HEX[name] || "#fff8ee";
   }
 
-  function layout(pictureIndex, difficulty) {
-    var d = normalizeDifficulty(difficulty);
+  function facetRows(id) {
+    var rows = FACETS[id];
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  function layout(pictureIndex) {
     var id = PICTURES[clampPicture(pictureIndex)];
-    var rows = (FACETS[id] && FACETS[id][d]) || [];
-    return rows.map(function (cell, i) {
+    return facetRows(id).map(function (cell, i) {
       return {
         id: i,
         color: cell.color,
@@ -95,13 +86,20 @@
     });
   }
 
+  function maxColor(cells) {
+    var k = 0;
+    cells.forEach(function (c) {
+      if (c.color > k) k = c.color;
+    });
+    return k;
+  }
+
   function cloneSession(s) {
     var filled = {};
     Object.keys(s.filled).forEach(function (k) {
       filled[k] = s.filled[k];
     });
     return {
-      difficulty: s.difficulty,
       pictureIndex: s.pictureIndex,
       selectedColor: s.selectedColor,
       cells: s.cells.map(function (c) {
@@ -114,14 +112,12 @@
 
   function createSession(opts) {
     opts = opts || {};
-    var difficulty = normalizeDifficulty(opts.difficulty);
     var random = typeof opts.random === "function" ? opts.random : Math.random;
     var pictureIndex = pickIndex(PICTURE_COUNT, random);
-    var cells = layout(pictureIndex, difficulty).map(function (c) {
+    var cells = layout(pictureIndex).map(function (c) {
       return { id: c.id, color: c.color };
     });
     return {
-      difficulty: difficulty,
       pictureIndex: pictureIndex,
       selectedColor: null,
       cells: cells,
@@ -140,7 +136,7 @@
 
   function selectColor(session, n) {
     var next = cloneSession(session);
-    var k = grid(session.difficulty).colors;
+    var k = maxColor(next.cells);
     if (typeof n !== "number" || n !== Math.floor(n) || n < 1 || n > k) {
       return { ok: false, session: next };
     }
@@ -172,15 +168,13 @@
   }
 
   function playAgain(session, random) {
-    if (!session) return createSession({ random: random });
-    return createSession({ difficulty: session.difficulty, random: random });
+    return createSession({ random: random });
   }
 
   var Paint = {
     PICTURE_COUNT: PICTURE_COUNT,
     PICTURES: PICTURES,
     COLORS: COLORS,
-    grid: grid,
     palette: palette,
     colorName: colorName,
     hex: hex,

@@ -208,15 +208,13 @@
   function openGame(game) {
     hideCheer();
     pendingGame = game;
+    if (game === "paint") {
+      startPaint();
+      return;
+    }
     if (difficultyTitle) {
       difficultyTitle.textContent =
-        game === "path"
-          ? "Crab Path"
-          : game === "puzzle"
-            ? "Beach Puzzle"
-            : game === "paint"
-              ? "Paint by Number"
-              : "Tide Pool Tidy";
+        game === "path" ? "Crab Path" : game === "puzzle" ? "Beach Puzzle" : "Tide Pool Tidy";
     }
     hide(menuScreen);
     hide(playScreen);
@@ -274,7 +272,6 @@
     btn.addEventListener("click", function () {
       if (pendingGame === "path") startPath(btn.dataset.difficulty);
       else if (pendingGame === "puzzle") startPuzzle(btn.dataset.difficulty);
-      else if (pendingGame === "paint") startPaint(btn.dataset.difficulty);
       else startTidy(btn.dataset.difficulty);
     });
   });
@@ -910,7 +907,7 @@
     show(moreGamesBtn);
   }
 
-  function startPaint(difficulty) {
+  function startPaint() {
     activeGame = "paint";
     hide(menuScreen);
     hide(difficultyScreen);
@@ -919,16 +916,16 @@
     hide(puzzleScreen);
     show(paintScreen);
     hideCheer();
-    paintSession = Paint.createSession({ difficulty: difficulty });
+    paintSession = Paint.createSession();
     renderPaint();
   }
 
   function renderPaint() {
     if (paintOutline) paintOutline.src = Paint.pictureSrc(paintSession);
-    var layout = Paint.layout(paintSession.pictureIndex, paintSession.difficulty);
+    var layout = Paint.layout(paintSession.pictureIndex);
     paintBlobs.innerHTML = "";
     if (paintLabels) paintLabels.innerHTML = "";
-    var fontSize = paintSession.difficulty === "hard" ? "4.2" : paintSession.difficulty === "medium" ? "5.2" : "6";
+    var fontSize = layout.length > 22 ? "4.6" : "5.6";
     layout.forEach(function (cell) {
       var pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
       pathEl.setAttribute("d", cell.d);
@@ -974,7 +971,7 @@
       else paintBlobs.appendChild(label);
     });
 
-    var pots = Paint.palette(paintSession.pictureIndex, paintSession.difficulty);
+    var pots = Paint.palette(paintSession.pictureIndex);
     var used = {};
     layout.forEach(function (cell) {
       used[cell.color] = true;

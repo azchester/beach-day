@@ -22,10 +22,10 @@ OUT_JS = os.path.join(ROOT, "paint-layouts.js")
 MENU_SVG = os.path.join(PAINT, "menu-preview.svg")
 
 PICTURES = ["sun", "crab", "sandcastle", "fish", "starfish", "boat", "shell", "bucket"]
-COLOR_K = {"easy": 4, "medium": 6, "hard": 8}
-# Soft targets only. We never slice rooms, and we never merge two
-# healthy pockets just to hit 10 / 20 / 40.
-ABSORB_PX = {"easy": 70, "medium": 32, "hard": 14}
+# One natural map per picture. No Easy / Medium / Hard, and we never
+# replace a broken contour with a bounding-box rectangle.
+COLOR_K = 6
+ABSORB_PX = 22
 TARGET = 260
 WALL_LUMA = 118
 
@@ -252,6 +252,61 @@ def reduce_facets(regions, w, min_size):
     return regions
 
 
+def farthest_pixel(region, w, src):
+    sx, sy = src % w, src // w
+    best = src
+    best_d = -1
+    for i in region:
+        d = (i % w - sx) ** 2 + (i // w - sy) ** 2
+        if d > best_d:
+            best_d = d
+            best = i
+    return best
+
+
+def split_two(region, w):
+    """Cut one oversized room into two wavy pockets. Never a grid."""
+    seed = next(iter(region))
+    p1 = farthest_pixel(region, w, seed)
+    p2 = farthest_pixel(region, w, p1)
+    if p1 == p2:
+        return [region]
+    p1x, p1y = p1 % w, p1 // w
+    p2x, p2y = p2 % w, p2 // w
+    left = set()
+    right = set()
+    for i in region:
+        x = i % w
+        y = i // w
+        wobble = 22 * math.sin((x * 0.19) + (y * 0.27))
+        d1 = (x - p1x) ** 2 + (y - p1y) ** 2 + wobble
+        d2 = (x - p2x) ** 2 + (y - p2y) ** 2 - wobble
+        if d1 <= d2:
+            left.add(i)
+        else:
+            right.add(i)
+    parts = [s for s in (left, right) if len(s) >= 16]
+    return parts if len(parts) >= 2 else [region]
+
+
+def enrich_sparse(regions, w, min_cells):
+    regions = [set(r) for r in regions]
+    guard = 0
+    while len(regions) < min_cells and guard < 24:
+        guard += 1
+        regions.sort(key=len, reverse=True)
+        if len(regions[0]) < 360:
+            break
+        big = regions.pop(0)
+        parts = split_two(big, w)
+        if len(parts) < 2:
+            regions.append(big)
+            break
+        regions.extend(parts)
+    regions.sort(key=len, reverse=True)
+    return regions
+
+
 def assign_colors(regions, k):
     out = []
     for i, region in enumerate(regions):
@@ -295,22 +350,7 @@ def label_point(region, w, h):
     return (best % w) + 0.5, (best // w) + 0.5
 
 
-def contour(region, w, h):
-    nxt = collections.defaultdict(list)
-    for i in region:
-        x = i % w
-        y = i // w
-        if y == 0 or ((y - 1) * w + x) not in region:
-            nxt[(x, y)].append((x + 1, y))
-        if x + 1 >= w or (y * w + x + 1) not in region:
-            nxt[(x + 1, y)].append((x + 1, y + 1))
-        if y + 1 >= h or ((y + 1) * w + x) not in region:
-            nxt[(x + 1, y + 1)].append((x, y + 1))
-        if x == 0 or (y * w + x - 1) not in region:
-            nxt[(x, y + 1)].append((x, y))
-    if not nxt:
-        return []
-    start = min(nxt.keys(), key=lambda p: (p[1], p[0]))
+def walk_loop(nxt, start):
     path = [start]
     used = set()
     cur = start
@@ -327,6 +367,35 @@ def contour(region, w, h):
     if path[0] != path[-1]:
         path.append(path[0])
     return path
+
+
+def contour(region, w, h):
+    nxt = collections.defaultdict(list)
+    for i in region:
+        x = i % w
+        y = i // w
+        if y == 0 or ((y - 1) * w + x) not in region:
+            nxt[(x, y)].append((x + 1, y))
+        if x + 1 >= w or (y * w + x + 1) not in region:
+            nxt[(x + 1, y)].append((x + 1, y + 1))
+        if y + 1 >= h or ((y + 1) * w + x) not in region:
+            nxt[(x + 1, y + 1)].append((x, y + 1))
+        if x == 0 or (y * w + x - 1) not in region:
+            nxt[(x, y + 1)].append((x, y))
+    if not nxt:
+        return []
+    unused = set(nxt.keys())
+    loops = []
+    while unused:
+        start = min(unused, key=lambda p: (p[1], p[0]))
+        path = walk_loop(nxt, start)
+        if len(path) >= 4:
+            loops.append(path)
+        unused.difference_update(path)
+        unused.discard(start)
+    if not loops:
+        return []
+    return max(loops, key=len)
 
 
 def rdp(points, eps):
@@ -358,12 +427,68 @@ def rdp(points, eps):
     return [points[0], points[-1]]
 
 
+def unique_ring(points):
+    ring = list(points)
+    if len(ring) >= 2 and ring[0] == ring[-1]:
+        ring = ring[:-1]
+    uniq = []
+    for p in ring:
+        if not uniq or (abs(uniq[-1][0] - p[0]) > 0.05 or abs(uniq[-1][1] - p[1]) > 0.05):
+            uniq.append(p)
+    return uniq
+
+
+def is_axis_box(points):
+    uniq = unique_ring(points)
+    if len(uniq) != 4:
+        return False
+    xs = [p[0] for p in uniq]
+    ys = [p[1] for p in uniq]
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+    if max_x - min_x < 1 or max_y - min_y < 1:
+        return False
+    for p in uniq:
+        on_x = abs(p[0] - min_x) < 0.4 or abs(p[0] - max_x) < 0.4
+        on_y = abs(p[1] - min_y) < 0.4 or abs(p[1] - max_y) < 0.4
+        if not (on_x and on_y):
+            return False
+    return True
+
+
+def bulge_box(points):
+    ring = unique_ring(points)
+    out = []
+    n = len(ring)
+    for i in range(n):
+        a = ring[i]
+        b = ring[(i + 1) % n]
+        out.append(a)
+        mx = (a[0] + b[0]) / 2.0
+        my = (a[1] + b[1]) / 2.0
+        dx = b[0] - a[0]
+        dy = b[1] - a[1]
+        length = math.hypot(dx, dy) or 1.0
+        nx, ny = -dy / length, dx / length
+        wobble = max(2.2, length * 0.09)
+        sign = 1 if (int(mx * 13 + my * 7) % 2 == 0) else -1
+        out.append((mx + nx * wobble * sign, my + ny * wobble * sign))
+    out.append(out[0])
+    return out
+
+
 def path_to_d(points, w, h):
     if len(points) < 3:
         return ""
     pts = rdp(points, 1.35)
     if len(pts) < 3:
         pts = points
+    if is_axis_box(pts):
+        pts = rdp(points, 0.4)
+    if is_axis_box(pts):
+        pts = bulge_box(pts)
+    if len(pts) < 3:
+        return ""
     sx = 100.0 / w
     sy = 100.0 / h
 
@@ -388,45 +513,46 @@ def build_picture(name):
     raw, _wall = flood_regions(w, h, pix)
     if not raw:
         raise SystemExit("no regions in " + name)
-    layouts = {}
-    for diff in ("easy", "medium", "hard"):
-        fitted = reduce_facets(raw, w, ABSORB_PX[diff])
-        colored = assign_colors(fitted, COLOR_K[diff])
-        cells = []
-        for region, color in colored:
-            xs = [i % w for i in region]
-            ys = [i // w for i in region]
-            x0, y0, x1, y1 = min(xs), min(ys), max(xs) + 1, max(ys) + 1
-            loop = contour(region, w, h)
-            if len(loop) >= 2:
-                lx0 = min(p[0] for p in loop)
-                ly0 = min(p[1] for p in loop)
-                lx1 = max(p[0] for p in loop)
-                ly1 = max(p[1] for p in loop)
-            else:
-                lx0 = ly0 = lx1 = ly1 = 0
-            if (lx1 - lx0) * (ly1 - ly0) < 0.35 * (x1 - x0) * (y1 - y0):
-                loop = [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)]
-            d = path_to_d(loop, w, h)
-            if not d:
-                loop = [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)]
-                d = path_to_d(loop, w, h)
-            lx, ly = label_point(region, w, h)
-            cells.append(
-                {
-                    "color": color,
-                    "d": d,
-                    "lx": round(lx * 100.0 / w, 2),
-                    "ly": round(ly * 100.0 / h, 2),
-                }
-            )
-        if not cells:
-            raise SystemExit("{} {} produced no cells".format(name, diff))
-        layouts[diff] = cells
-    print("  {}  easy={} medium={} hard={}".format(
-        name, len(layouts["easy"]), len(layouts["medium"]), len(layouts["hard"])
-    ))
-    return layouts
+    fitted = enrich_sparse(reduce_facets(raw, w, ABSORB_PX), w, 8)
+    leftover = []
+    keep = []
+    for region in fitted:
+        loop = contour(region, w, h)
+        d = path_to_d(loop, w, h) if len(loop) >= 3 else ""
+        if d:
+            keep.append(region)
+        else:
+            leftover.append(region)
+    for region in leftover:
+        if not keep:
+            continue
+        fake = [region] + keep
+        near = nearest_index(fake, 0, w)
+        if near > 0:
+            keep[near - 1] |= region
+    if not keep:
+        raise SystemExit("{} produced no organic cells".format(name))
+    k = min(COLOR_K, max(3, len(keep)))
+    colored = assign_colors(keep, k)
+    cells = []
+    for region, color in colored:
+        loop = contour(region, w, h)
+        d = path_to_d(loop, w, h)
+        if not d:
+            continue
+        lx, ly = label_point(region, w, h)
+        cells.append(
+            {
+                "color": color,
+                "d": d,
+                "lx": round(lx * 100.0 / w, 2),
+                "ly": round(ly * 100.0 / h, 2),
+            }
+        )
+    if not cells:
+        raise SystemExit("{} produced no cells".format(name))
+    print("  {}  cells={}".format(name, len(cells)))
+    return cells
 
 
 def js_escape(s):
@@ -444,16 +570,13 @@ def write_js(all_layouts):
         "  var PAINT_FACETS = {",
     ]
     for name in PICTURES:
-        lines.append("    " + json.dumps(name) + ": {")
-        for diff in ("easy", "medium", "hard"):
-            lines.append("      " + json.dumps(diff) + ": [")
-            for cell in all_layouts[name][diff]:
-                lines.append(
-                    "        { color: %d, d: \"%s\", lx: %s, ly: %s },"
-                    % (cell["color"], js_escape(cell["d"]), cell["lx"], cell["ly"])
-                )
-            lines.append("      ],")
-        lines.append("    },")
+        lines.append("    " + json.dumps(name) + ": [")
+        for cell in all_layouts[name]:
+            lines.append(
+                "      { color: %d, d: \"%s\", lx: %s, ly: %s },"
+                % (cell["color"], js_escape(cell["d"]), cell["lx"], cell["ly"])
+            )
+        lines.append("    ],")
     lines.extend(
         [
             "  };",
@@ -471,12 +594,12 @@ def write_js(all_layouts):
     print("wrote", OUT_JS)
 
 
-def write_menu_preview(sun_easy):
+def write_menu_preview(sun_cells):
     parts = [
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">',
         '<rect width="100" height="100" fill="#fff8ee"/>',
     ]
-    for cell in sun_easy:
+    for cell in sun_cells:
         parts.append(
             '<path d="%s" fill="#fff" stroke="#111" stroke-width="0.7" stroke-linejoin="round"/>'
             % cell["d"]
@@ -498,7 +621,7 @@ def main():
         print("facet", name)
         all_layouts[name] = build_picture(name)
     write_js(all_layouts)
-    write_menu_preview(all_layouts["sun"]["easy"])
+    write_menu_preview(all_layouts["sun"])
 
 
 if __name__ == "__main__":
