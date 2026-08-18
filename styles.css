@@ -296,6 +296,52 @@ body {
   padding: 0.4rem 0.8rem;
 }
 
+.paint-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.paint-thumb {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  border-radius: 0.8rem;
+  border: 4px solid var(--ink);
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--foam);
+}
+
+.paint-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.paint-thumb-pots {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+
+.paint-thumb-pot {
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Nunito, sans-serif;
+  font-weight: 800;
+  font-size: 0.72rem;
+  color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
 .menu-kid {
   width: 8.4rem;
   flex-shrink: 0;
@@ -714,6 +760,123 @@ body {
   filter: drop-shadow(5px 7px 0 var(--shadow));
 }
 
+.paint-screen {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.paint-stage {
+  position: relative;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  padding: 0.6rem 0.6rem 0.2rem;
+}
+
+.paint-page {
+  position: relative;
+  width: min(72vw, 52vh, 420px);
+  aspect-ratio: 1;
+  justify-self: end;
+  margin-right: 0.4rem;
+  background: var(--foam);
+  border: 5px solid var(--ink);
+  border-radius: 1.1rem;
+  overflow: hidden;
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+.paint-outline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.paint-blobs {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.paint-blobs path {
+  cursor: pointer;
+}
+
+.paint-blobs path.wiggle {
+  animation: wiggle 0.4s ease;
+}
+
+.paint-kid {
+  width: 6.4rem;
+  grid-column: 2;
+}
+
+.paint-pots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.7rem 0.7rem 0.9rem;
+  background: var(--water);
+  border-top: 5px solid var(--ink);
+}
+
+.paint-pot {
+  appearance: none;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  border: 4px solid var(--ink);
+  font-family: Nunito, sans-serif;
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.paint-pot.is-on {
+  box-shadow: 0 0 0 4px var(--sunflower), 3px 3px 0 var(--ink);
+}
+
+.cheer.is-paint {
+  background: transparent;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  padding: 0 1rem 0.9rem;
+  pointer-events: none;
+}
+
+.cheer.is-paint .cheer-kid {
+  width: 7.2rem;
+  pointer-events: none;
+}
+
+.cheer.is-paint .cheer-words {
+  font-size: clamp(1.8rem, 5.5vw, 2.8rem);
+}
+
+.cheer.is-paint .cheer-words,
+.cheer.is-paint .cheer-actions {
+  pointer-events: auto;
+}
+
+.paint-screen.is-won .paint-kid {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paint-blobs path.wiggle,
+  .paint-pot {
+    animation: none;
+  }
+}
+
 .path-row {
   display: flex;
   gap: 0.55rem;
@@ -866,11 +1029,36 @@ body {
     height: 72px;
   }
 
+  .paint-thumb {
+    width: 72px;
+    height: 72px;
+  }
+
+  .paint-page {
+    width: min(92vw, 56vh, 460px);
+    justify-self: center;
+    margin-right: 0;
+  }
+
+  .paint-stage {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .paint-kid {
+    position: absolute;
+    right: 0.2rem;
+    bottom: 0.2rem;
+    width: 4.6rem;
+    grid-column: auto;
+  }
+
   .cheer-kid {
     width: 8rem;
   }
 
-  .cheer.is-puzzle .cheer-kid {
+  .cheer.is-puzzle .cheer-kid,
+  .cheer.is-paint .cheer-kid {
     width: 5.6rem;
   }
 

@@ -33,8 +33,13 @@
   var pathBoard = document.getElementById("path-board");
   var puzzleScreen = document.getElementById("puzzle-screen");
   var puzzleField = document.getElementById("puzzle-field");
-  var MENU_GAMES = ["tidy", "puzzle", "path"];
-  var CRAB_X = { tidy: "-180px", puzzle: "0px", path: "180px" };
+  var paintScreen = document.getElementById("paint-screen");
+  var paintOutline = document.getElementById("paint-outline");
+  var paintBlobs = document.getElementById("paint-blobs");
+  var paintPots = document.getElementById("paint-pots");
+  var paintSession = null;
+  var MENU_GAMES = ["tidy", "puzzle", "path", "paint"];
+  var CRAB_X = { tidy: "-240px", puzzle: "-80px", path: "80px", paint: "240px" };
   var puzzleSession = null;
   var puzzlePos = {};
   var puzzleCell = 72;
@@ -62,7 +67,9 @@
   function hideCheer() {
     hide(cheerEl);
     cheerEl.classList.remove("is-puzzle");
+    cheerEl.classList.remove("is-paint");
     if (puzzleScreen) puzzleScreen.classList.remove("is-won");
+    if (paintScreen) paintScreen.classList.remove("is-won");
     hide(playAgainBtn);
     hide(moreGamesBtn);
     if (pathAdvanceTimer) {
@@ -175,6 +182,7 @@
     hide(playScreen);
     hide(pathScreen);
     hide(puzzleScreen);
+    hide(paintScreen);
     hide(difficultyScreen);
     hideCheer();
     show(menuScreen);
@@ -201,12 +209,19 @@
     pendingGame = game;
     if (difficultyTitle) {
       difficultyTitle.textContent =
-        game === "path" ? "Crab Path" : game === "puzzle" ? "Beach Puzzle" : "Tide Pool Tidy";
+        game === "path"
+          ? "Crab Path"
+          : game === "puzzle"
+            ? "Beach Puzzle"
+            : game === "paint"
+              ? "Paint by Number"
+              : "Tide Pool Tidy";
     }
     hide(menuScreen);
     hide(playScreen);
     hide(pathScreen);
     hide(puzzleScreen);
+    hide(paintScreen);
     show(difficultyScreen);
   }
 
@@ -258,6 +273,7 @@
     btn.addEventListener("click", function () {
       if (pendingGame === "path") startPath(btn.dataset.difficulty);
       else if (pendingGame === "puzzle") startPuzzle(btn.dataset.difficulty);
+      else if (pendingGame === "paint") startPaint(btn.dataset.difficulty);
       else startTidy(btn.dataset.difficulty);
     });
   });
@@ -272,6 +288,9 @@
       renderPath();
     } else if (activeGame === "puzzle") {
       startPuzzleDeal(Puzzle.playAgain(puzzleSession));
+    } else if (activeGame === "paint") {
+      paintSession = Paint.playAgain(paintSession);
+      renderPaint();
     } else {
       selectedId = null;
       session = TidePool.playAgain(session);
@@ -287,6 +306,7 @@
     hide(difficultyScreen);
     hide(pathScreen);
     hide(puzzleScreen);
+    hide(paintScreen);
     show(playScreen);
     hideCheer();
     renderTidy();
@@ -466,6 +486,7 @@
     hide(difficultyScreen);
     hide(playScreen);
     hide(puzzleScreen);
+    hide(paintScreen);
     show(pathScreen);
     hideCheer();
     renderPath();
@@ -639,6 +660,7 @@
     hide(difficultyScreen);
     hide(playScreen);
     hide(pathScreen);
+    hide(paintScreen);
     show(puzzleScreen);
     hideCheer();
     window.requestAnimationFrame(function () {
@@ -881,6 +903,103 @@
     puzzleScreen.classList.add("is-won");
     cheerEl.classList.add("is-puzzle");
     cheerWords.textContent = "What a puzzle!";
+    show(cheerEl);
+    celebrateKid();
+    show(playAgainBtn);
+    show(moreGamesBtn);
+  }
+
+  function startPaint(difficulty) {
+    activeGame = "paint";
+    hide(menuScreen);
+    hide(difficultyScreen);
+    hide(playScreen);
+    hide(pathScreen);
+    hide(puzzleScreen);
+    show(paintScreen);
+    hideCheer();
+    paintSession = Paint.createSession({ difficulty: difficulty });
+    renderPaint();
+  }
+
+  function renderPaint() {
+    var src = Paint.pictureSrc(paintSession);
+    paintOutline.src = src;
+    var layout = Paint.layout(paintSession.pictureIndex, paintSession.difficulty);
+    paintBlobs.innerHTML = "";
+    layout.forEach(function (cell) {
+      var pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      pathEl.setAttribute("d", cell.d);
+      pathEl.setAttribute("data-cell", String(cell.id));
+      pathEl.setAttribute("stroke", "#2a2438");
+      pathEl.setAttribute("stroke-width", "1.4");
+      pathEl.setAttribute("stroke-linejoin", "round");
+      if (paintSession.filled[cell.id]) {
+        pathEl.setAttribute("fill", Paint.hex(Paint.colorName(paintSession.pictureIndex, cell.color)));
+        paintBlobs.appendChild(pathEl);
+      } else {
+        pathEl.setAttribute("fill", "rgba(255,248,238,0.35)");
+        paintBlobs.appendChild(pathEl);
+        var label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        var bb = pathEl.getBBox();
+        label.setAttribute("x", String(bb.x + bb.width / 2));
+        label.setAttribute("y", String(bb.y + bb.height / 2 + 1.2));
+        label.setAttribute("text-anchor", "middle");
+        label.setAttribute("dominant-baseline", "middle");
+        label.setAttribute("font-family", "Nunito, sans-serif");
+        label.setAttribute("font-weight", "800");
+        label.setAttribute("font-size", paintSession.difficulty === "hard" ? "4" : "6");
+        label.setAttribute("fill", "#2a2438");
+        label.setAttribute("pointer-events", "none");
+        label.textContent = String(cell.color);
+        paintBlobs.appendChild(label);
+      }
+    });
+
+    var pots = Paint.palette(paintSession.pictureIndex, paintSession.difficulty);
+    paintPots.innerHTML = "";
+    pots.forEach(function (name, i) {
+      var n = i + 1;
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "paint-pot";
+      if (paintSession.selectedColor === n) btn.classList.add("is-on");
+      btn.style.background = Paint.hex(name);
+      btn.dataset.color = String(n);
+      btn.setAttribute("aria-label", "color " + n);
+      btn.textContent = String(n);
+      paintPots.appendChild(btn);
+    });
+  }
+
+  paintPots.addEventListener("click", function (event) {
+    var btn = event.target.closest ? event.target.closest("[data-color]") : null;
+    if (!btn || !paintSession) return;
+    var result = Paint.selectColor(paintSession, Number(btn.dataset.color));
+    if (!result.ok) return;
+    paintSession = result.session;
+    renderPaint();
+  });
+
+  paintBlobs.addEventListener("click", function (event) {
+    var node = event.target.closest ? event.target.closest("[data-cell]") : event.target;
+    if (!node || !node.getAttribute || !paintSession) return;
+    var id = Number(node.getAttribute("data-cell"));
+    if (id !== id) return;
+    var result = Paint.fill(paintSession, id);
+    if (!result.ok) {
+      pulse(node, "wiggle");
+      return;
+    }
+    paintSession = result.session;
+    renderPaint();
+    if (paintSession.complete) afterPaint();
+  });
+
+  function afterPaint() {
+    paintScreen.classList.add("is-won");
+    cheerEl.classList.add("is-paint");
+    cheerWords.textContent = "What a picture!";
     show(cheerEl);
     celebrateKid();
     show(playAgainBtn);
