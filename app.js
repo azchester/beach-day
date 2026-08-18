@@ -39,7 +39,7 @@
   var paintPots = document.getElementById("paint-pots");
   var paintSession = null;
   var MENU_GAMES = ["tidy", "puzzle", "path", "paint"];
-  var CRAB_X = { tidy: "-240px", puzzle: "-80px", path: "80px", paint: "240px" };
+  var CRAB_X = { tidy: "-420px", puzzle: "-140px", path: "140px", paint: "420px" };
   var puzzleSession = null;
   var puzzlePos = {};
   var puzzleCell = 72;

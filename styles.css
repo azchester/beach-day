@@ -183,7 +183,7 @@ body {
   display: flex;
   gap: 1.2rem;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   width: min(1100px, 100%);
 }
 
@@ -814,6 +814,7 @@ body {
 .paint-kid {
   width: 6.4rem;
   grid-column: 2;
+  pointer-events: none;
 }
 
 .paint-pots {
@@ -983,6 +984,16 @@ body {
   100% { transform: translateX(0); }
 }
 
+@media (max-width: 980px) {
+  .exhibits {
+    flex-wrap: wrap;
+  }
+
+  .menu-crab {
+    display: none;
+  }
+}
+
 @media (max-width: 700px) {
   .piece {
     width: 96px;
@@ -996,10 +1007,6 @@ body {
 
   .pool-name {
     font-size: 0.8rem;
-  }
-
-  .menu-crab {
-    display: none;
   }
 
   .menu-kid,
@@ -1051,6 +1058,7 @@ body {
     bottom: 0.2rem;
     width: 4.6rem;
     grid-column: auto;
+    pointer-events: none;
   }
 
   .cheer-kid {
