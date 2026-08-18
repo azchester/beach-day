@@ -369,6 +369,41 @@ body {
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
+  transform-origin: 50% 100%;
+}
+
+.kid-art.is-looking-right {
+  transform: scaleX(-1);
+}
+
+.kid-art.is-nodding {
+  animation: kid-nod 0.55s ease;
+}
+
+.kid-art.is-hmm {
+  animation: kid-hmm 0.55s ease;
+}
+
+.kid-art.is-fidgeting {
+  animation: kid-fidget 0.7s ease;
+}
+
+@keyframes kid-nod {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(6px); }
+}
+
+@keyframes kid-hmm {
+  0%, 100% { transform: rotate(0deg); }
+  35% { transform: rotate(-8deg); }
+  70% { transform: rotate(4deg); }
+}
+
+@keyframes kid-fidget {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-7px); }
+  55% { transform: translateY(0); }
+  75% { transform: translateY(-3px); }
 }
 
 .menu-crab {
@@ -1264,5 +1299,11 @@ body {
   .path-kid.is-cheering {
     animation: none;
     transition: none;
+  }
+
+  .kid-art.is-nodding,
+  .kid-art.is-hmm,
+  .kid-art.is-fidgeting {
+    animation: none;
   }
 }
