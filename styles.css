@@ -157,13 +157,13 @@ body {
   gap: 1.2rem;
   justify-content: center;
   flex-wrap: wrap;
-  width: min(920px, 100%);
+  width: min(1100px, 100%);
 }
 
 .exhibit {
   appearance: none;
-  flex: 1 1 260px;
-  max-width: 340px;
+  flex: 1 1 220px;
+  max-width: 320px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -228,6 +228,21 @@ body {
   width: 74px;
   height: 74px;
   object-fit: contain;
+  pointer-events: none;
+}
+
+.puzzle-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.puzzle-art img {
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 0.8rem;
+  border: 4px solid var(--ink);
   pointer-events: none;
 }
 
@@ -587,6 +602,43 @@ body {
   animation: celebrate-pop 0.7s ease;
 }
 
+.puzzle-stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.puzzle-field {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+
+.puzzle-kid {
+  position: absolute;
+  right: 0.4rem;
+  bottom: 0.4rem;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.jig {
+  appearance: none;
+  position: absolute;
+  padding: 0;
+  border: 0;
+  background-repeat: no-repeat;
+  cursor: grab;
+  touch-action: none;
+  filter: drop-shadow(2px 3px 0 var(--shadow));
+}
+
+.jig.dragging {
+  cursor: grabbing;
+  z-index: 8;
+  filter: drop-shadow(4px 6px 0 var(--shadow));
+}
+
 .path-row {
   display: flex;
   gap: 0.55rem;
@@ -728,6 +780,15 @@ body {
 
   .path-kid.is-cheering {
     width: 6.6rem;
+  }
+
+  .puzzle-kid {
+    width: 4.6rem;
+  }
+
+  .puzzle-art img {
+    width: 96px;
+    height: 72px;
   }
 
   .cheer-kid {

@@ -31,6 +31,15 @@
   var hintEl = document.getElementById("round-hint");
   var pathHint = document.getElementById("path-hint");
   var pathBoard = document.getElementById("path-board");
+  var puzzleScreen = document.getElementById("puzzle-screen");
+  var puzzleField = document.getElementById("puzzle-field");
+  var MENU_GAMES = ["tidy", "puzzle", "path"];
+  var CRAB_X = { tidy: "-180px", puzzle: "0px", path: "180px" };
+  var puzzleSession = null;
+  var puzzlePos = {};
+  var puzzleCell = 72;
+  var puzzleTab = 16;
+  var puzzlePan = { x: 0, y: 0 };
   var cheerEl = document.getElementById("cheer");
   var cheerWords = document.getElementById("cheer-words");
   var playAgainBtn = document.getElementById("play-again");
@@ -163,6 +172,7 @@
     activeGame = null;
     hide(playScreen);
     hide(pathScreen);
+    hide(puzzleScreen);
     hide(difficultyScreen);
     hideCheer();
     show(menuScreen);
@@ -171,8 +181,7 @@
 
   function setMenuPick(game, scuttle) {
     menuPick = game;
-    var shift = game === "path" ? "150px" : "-150px";
-    menuCrab.style.setProperty("--crab-x", shift);
+    menuCrab.style.setProperty("--crab-x", CRAB_X[game] || "0px");
     if (scuttle && !reduceMotion) {
       menuCrab.classList.remove("scuttle");
       void menuCrab.offsetWidth;
@@ -189,11 +198,13 @@
     hideCheer();
     pendingGame = game;
     if (difficultyTitle) {
-      difficultyTitle.textContent = game === "path" ? "Crab Path" : "Tide Pool Tidy";
+      difficultyTitle.textContent =
+        game === "path" ? "Crab Path" : game === "puzzle" ? "Beach Puzzle" : "Tide Pool Tidy";
     }
     hide(menuScreen);
     hide(playScreen);
     hide(pathScreen);
+    hide(puzzleScreen);
     show(difficultyScreen);
   }
 
@@ -224,7 +235,11 @@
     if (menuScreen.hidden) return;
     if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
       event.preventDefault();
-      setMenuPick(menuPick === "tidy" ? "path" : "tidy", true);
+      var at = MENU_GAMES.indexOf(menuPick);
+      if (at < 0) at = 0;
+      if (event.key === "ArrowRight") at = (at + 1) % MENU_GAMES.length;
+      else at = (at + MENU_GAMES.length - 1) % MENU_GAMES.length;
+      setMenuPick(MENU_GAMES[at], true);
       exhibits.querySelector('[data-game="' + menuPick + '"]').focus();
     }
     if (event.key === "Enter" && menuPick) {
@@ -240,6 +255,7 @@
   document.querySelectorAll("[data-difficulty]").forEach(function (btn) {
     btn.addEventListener("click", function () {
       if (pendingGame === "path") startPath(btn.dataset.difficulty);
+      else if (pendingGame === "puzzle") startPuzzle(btn.dataset.difficulty);
       else startTidy(btn.dataset.difficulty);
     });
   });
@@ -252,6 +268,8 @@
     if (activeGame === "path") {
       pathSession = CrabPath.playAgain(pathSession);
       renderPath();
+    } else if (activeGame === "puzzle") {
+      startPuzzleDeal(Puzzle.playAgain(puzzleSession));
     } else {
       selectedId = null;
       session = TidePool.playAgain(session);
@@ -266,6 +284,7 @@
     hide(menuScreen);
     hide(difficultyScreen);
     hide(pathScreen);
+    hide(puzzleScreen);
     show(playScreen);
     hideCheer();
     renderTidy();
@@ -444,6 +463,7 @@
     hide(menuScreen);
     hide(difficultyScreen);
     hide(playScreen);
+    hide(puzzleScreen);
     show(pathScreen);
     hideCheer();
     renderPath();
@@ -539,6 +559,246 @@
       hideCheer();
       renderPath();
     }, 2400);
+  }
+
+  function jigEdgePath(x1, y1, x2, y2, ox, oy, kind, tab) {
+    if (kind === "flat") return " L " + x2 + " " + y2;
+    var dx = x2 - x1;
+    var dy = y2 - y1;
+    var mx1 = x1 + dx * 0.36;
+    var my1 = y1 + dy * 0.36;
+    var mx2 = x1 + dx * 0.64;
+    var my2 = y1 + dy * 0.64;
+    var sign = kind === "tab" ? 1 : -1;
+    var cx = (x1 + x2) / 2 + ox * tab * sign;
+    var cy = (y1 + y2) / 2 + oy * tab * sign;
+    return " L " + mx1 + " " + my1 + " Q " + cx + " " + cy + " " + mx2 + " " + my2 + " L " + x2 + " " + y2;
+  }
+
+  function jigClip(session, id, cell, tab) {
+    var x0 = tab;
+    var y0 = tab;
+    var x1 = tab + cell;
+    var y1 = tab + cell;
+    var d = "M " + x0 + " " + y0;
+    d += jigEdgePath(x0, y0, x1, y0, 0, -1, Puzzle.edge(session, id, "n"), tab);
+    d += jigEdgePath(x1, y0, x1, y1, 1, 0, Puzzle.edge(session, id, "e"), tab);
+    d += jigEdgePath(x1, y1, x0, y1, 0, 1, Puzzle.edge(session, id, "s"), tab);
+    d += jigEdgePath(x0, y1, x0, y0, -1, 0, Puzzle.edge(session, id, "w"), tab);
+    return d + " Z";
+  }
+
+  function puzzleMetrics(session) {
+    var stage = puzzleField.getBoundingClientRect();
+    var maxW = Math.max(280, stage.width - 24);
+    var maxH = Math.max(280, stage.height - 24);
+    var cell = Math.floor(Math.min(maxW / session.cols, maxH / session.rows));
+    if (cell < 44) cell = 44;
+    if (cell > 110) cell = 110;
+    return { cell: cell, tab: Math.round(cell * 0.22) };
+  }
+
+  function startPuzzle(difficulty) {
+    activeGame = "puzzle";
+    hide(menuScreen);
+    hide(difficultyScreen);
+    hide(playScreen);
+    hide(pathScreen);
+    show(puzzleScreen);
+    hideCheer();
+    window.requestAnimationFrame(function () {
+      startPuzzleDeal(Puzzle.createSession({ difficulty: difficulty }));
+    });
+  }
+
+  function startPuzzleDeal(next) {
+    puzzleSession = next;
+    puzzlePan = { x: 0, y: 0 };
+    var m = puzzleMetrics(puzzleSession);
+    puzzleCell = m.cell;
+    puzzleTab = m.tab;
+    var box = puzzleCell + puzzleTab * 2;
+    var field = puzzleField.getBoundingClientRect();
+    var maxX = Math.max(12, field.width - box - 12);
+    var maxY = Math.max(12, field.height - box - 88);
+    puzzlePos = {};
+    var id;
+    for (id = 0; id < puzzleSession.rows * puzzleSession.cols; id++) {
+      puzzlePos[id] = {
+        x: 12 + Math.random() * maxX,
+        y: 12 + Math.random() * maxY
+      };
+    }
+    renderPuzzle();
+  }
+
+  function renderPuzzle() {
+    puzzleField.innerHTML = "";
+    puzzleField.style.transform = "translate(" + puzzlePan.x + "px," + puzzlePan.y + "px)";
+    var src = Puzzle.pictureSrc(puzzleSession);
+    var cell = puzzleCell;
+    var tab = puzzleTab;
+    var box = cell + tab * 2;
+    var fullW = puzzleSession.cols * cell;
+    var fullH = puzzleSession.rows * cell;
+    var id;
+    for (id = 0; id < puzzleSession.rows * puzzleSession.cols; id++) {
+      var rc = Puzzle.rowCol(puzzleSession, id);
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "jig";
+      btn.dataset.id = String(id);
+      btn.style.width = box + "px";
+      btn.style.height = box + "px";
+      btn.style.left = puzzlePos[id].x + "px";
+      btn.style.top = puzzlePos[id].y + "px";
+      btn.style.backgroundImage = "url('" + src + "')";
+      btn.style.backgroundSize = fullW + "px " + fullH + "px";
+      btn.style.backgroundPosition = tab - rc.col * cell + "px " + (tab - rc.row * cell) + "px";
+      btn.style.clipPath = "path('" + jigClip(puzzleSession, id, cell, tab) + "')";
+      btn.setAttribute("aria-label", "piece");
+      puzzleField.appendChild(btn);
+      bindJigDrag(btn, id);
+    }
+  }
+
+  function groupIds(id) {
+    var i;
+    for (i = 0; i < puzzleSession.groups.length; i++) {
+      if (puzzleSession.groups[i].indexOf(id) !== -1) return puzzleSession.groups[i].slice();
+    }
+    return [id];
+  }
+
+  function bindJigDrag(btn, id) {
+    btn.addEventListener("pointerdown", function (event) {
+      if (event.button !== undefined && event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      var ids = groupIds(id);
+      var starts = {};
+      ids.forEach(function (pid) {
+        starts[pid] = { x: puzzlePos[pid].x, y: puzzlePos[pid].y };
+      });
+      drag = {
+        kind: "jig",
+        ids: ids,
+        starts: starts,
+        x: event.clientX,
+        y: event.clientY,
+        moved: false
+      };
+      ids.forEach(function (pid) {
+        var el = puzzleField.querySelector('[data-id="' + pid + '"]');
+        if (el) el.classList.add("dragging");
+      });
+      try {
+        btn.setPointerCapture(event.pointerId);
+      } catch (err) {}
+    });
+
+    btn.addEventListener("pointermove", function (event) {
+      if (!drag || drag.kind !== "jig") return;
+      var dx = event.clientX - drag.x;
+      var dy = event.clientY - drag.y;
+      if (!drag.moved && Math.hypot(dx, dy) < 6) return;
+      drag.moved = true;
+      drag.ids.forEach(function (pid) {
+        puzzlePos[pid] = { x: drag.starts[pid].x + dx, y: drag.starts[pid].y + dy };
+        var el = puzzleField.querySelector('[data-id="' + pid + '"]');
+        if (el) {
+          el.style.left = puzzlePos[pid].x + "px";
+          el.style.top = puzzlePos[pid].y + "px";
+        }
+      });
+    });
+
+    btn.addEventListener("pointerup", finishJig);
+    btn.addEventListener("pointercancel", finishJig);
+  }
+
+  function finishJig() {
+    if (!drag || drag.kind !== "jig") return;
+    var ids = drag.ids;
+    drag = null;
+    ids.forEach(function (pid) {
+      var el = puzzleField.querySelector('[data-id="' + pid + '"]');
+      if (el) el.classList.remove("dragging");
+    });
+    trySnapGroup(ids);
+  }
+
+  function trySnapGroup(ids) {
+    var threshold = puzzleCell / 3;
+    var i;
+    var n;
+    var nid;
+    var neighbors;
+    for (i = 0; i < ids.length; i++) {
+      neighbors = Puzzle.neighbors(puzzleSession, ids[i]);
+      for (n = 0; n < neighbors.length; n++) {
+        nid = neighbors[n];
+        if (ids.indexOf(nid) !== -1) continue;
+        if (!Puzzle.canSnap(puzzleSession, ids[i], nid)) continue;
+        var rcA = Puzzle.rowCol(puzzleSession, ids[i]);
+        var rcB = Puzzle.rowCol(puzzleSession, nid);
+        var expectX = puzzlePos[nid].x + (rcA.col - rcB.col) * puzzleCell;
+        var expectY = puzzlePos[nid].y + (rcA.row - rcB.row) * puzzleCell;
+        if (Math.hypot(puzzlePos[ids[i]].x - expectX, puzzlePos[ids[i]].y - expectY) > threshold) {
+          continue;
+        }
+        var result = Puzzle.snap(puzzleSession, ids[i], nid);
+        if (!result.ok) continue;
+        puzzleSession = result.session;
+        var dx = expectX - puzzlePos[ids[i]].x;
+        var dy = expectY - puzzlePos[ids[i]].y;
+        ids.forEach(function (pid) {
+          puzzlePos[pid] = { x: puzzlePos[pid].x + dx, y: puzzlePos[pid].y + dy };
+        });
+        renderPuzzle();
+        if (puzzleSession.complete) afterPuzzle();
+        return;
+      }
+    }
+  }
+
+  puzzleField.addEventListener("pointerdown", function (event) {
+    if (event.target !== puzzleField) return;
+    if (event.button !== undefined && event.button !== 0) return;
+    drag = {
+      kind: "pan",
+      x: event.clientX,
+      y: event.clientY,
+      panX: puzzlePan.x,
+      panY: puzzlePan.y
+    };
+    try {
+      puzzleField.setPointerCapture(event.pointerId);
+    } catch (err) {}
+  });
+
+  puzzleField.addEventListener("pointermove", function (event) {
+    if (!drag || drag.kind !== "pan") return;
+    puzzlePan.x = drag.panX + (event.clientX - drag.x);
+    puzzlePan.y = drag.panY + (event.clientY - drag.y);
+    puzzleField.style.transform = "translate(" + puzzlePan.x + "px," + puzzlePan.y + "px)";
+  });
+
+  puzzleField.addEventListener("pointerup", function () {
+    if (drag && drag.kind === "pan") drag = null;
+  });
+  puzzleField.addEventListener("pointercancel", function () {
+    if (drag && drag.kind === "pan") drag = null;
+  });
+
+  function afterPuzzle() {
+    cheerWords.textContent = "What a puzzle!";
+    show(cheerEl);
+    celebrateKid();
+    var kid = document.querySelector(".puzzle-kid");
+    if (kid) kid.classList.add("is-cheering");
+    show(playAgainBtn);
+    show(moreGamesBtn);
   }
 
   paintKids();

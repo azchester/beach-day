@@ -1,6 +1,6 @@
 # Beach Day
 
-Two quiet beach games for a grown-up and an almost-four-year-old.
+Three quiet beach games for a grown-up and an almost-four-year-old.
 
 ## Play
 
@@ -15,6 +15,12 @@ Tap a thing, then tap its pool (or drag). Wrong pool? It wiggles back. No timer,
 
 Hard’s last round: the shell pool only wants **orange shells**. An orange castle still goes with the castles.
 
+### Beach Puzzle
+
+Tap Beach Puzzle, then Easy, Medium, or Hard.
+
+One of twelve beach pictures is cut into pieces. Easy is 9, Medium is 16, Hard is 25. Drag a piece next to its neighbor. If they belong together they snap. No timer, no score.
+
 ### Crab Path
 
 Tap Crab Path, then Easy, Medium, or Hard.
@@ -28,4 +34,5 @@ Tap **Games** any time to come back to the menu.
 ```bash
 node test/game.test.js
 node test/path.test.js
+node test/puzzle.test.js
 ```

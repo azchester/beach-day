@@ -33,6 +33,13 @@
             <span class="exhibit-name">Tide Pool Tidy</span>
             <span class="exhibit-blurb">Sort the beach</span>
           </button>
+          <button type="button" class="exhibit" data-game="puzzle" role="option" aria-selected="false">
+            <div class="exhibit-art puzzle-art" aria-hidden="true">
+              <img src="assets/puzzles/01-beach.jpg" alt="" />
+            </div>
+            <span class="exhibit-name">Beach Puzzle</span>
+            <span class="exhibit-blurb">Snap the picture</span>
+          </button>
           <button type="button" class="exhibit" data-game="path" role="option" aria-selected="false">
             <div class="exhibit-art path-art" aria-hidden="true">
               <img src="assets/crab.png" alt="" />
@@ -86,6 +93,17 @@
         </div>
       </section>
 
+      <section id="puzzle-screen" class="screen path-screen puzzle-screen hidden" hidden>
+        <div class="sky">
+          <button type="button" class="back-btn" data-back>Games</button>
+          <img class="sun small" src="assets/sun.png" alt="" aria-hidden="true" />
+        </div>
+        <div class="puzzle-stage">
+          <div id="puzzle-field" class="puzzle-field" aria-label="puzzle pieces"></div>
+          <div class="path-kid puzzle-kid" data-kid aria-hidden="true"></div>
+        </div>
+      </section>
+
       <div id="cheer" class="cheer hidden" hidden>
         <div class="cheer-kid" data-kid aria-hidden="true"></div>
         <p class="cheer-words" id="cheer-words">All tidy!</p>
@@ -97,6 +115,7 @@
     </main>
     <script src="game.js"></script>
     <script src="path.js"></script>
+    <script src="puzzle.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
