@@ -39,7 +39,6 @@
   var puzzlePos = {};
   var puzzleCell = 72;
   var puzzleTab = 16;
-  var puzzlePan = { x: 0, y: 0 };
   var cheerEl = document.getElementById("cheer");
   var cheerWords = document.getElementById("cheer-words");
   var playAgainBtn = document.getElementById("play-again");
@@ -646,9 +645,22 @@
     });
   }
 
+  function fieldSize() {
+    var field = puzzleField.getBoundingClientRect();
+    return { w: field.width, h: field.height, box: puzzleCell + puzzleTab * 2 };
+  }
+
+  function applyPuzzlePos() {
+    Object.keys(puzzlePos).forEach(function (id) {
+      var el = puzzleField.querySelector('[data-id="' + id + '"]');
+      if (!el) return;
+      el.style.left = puzzlePos[id].x + "px";
+      el.style.top = puzzlePos[id].y + "px";
+    });
+  }
+
   function startPuzzleDeal(next) {
     puzzleSession = next;
-    puzzlePan = { x: 0, y: 0 };
     var m = puzzleMetrics(puzzleSession);
     puzzleCell = m.cell;
     puzzleTab = m.tab;
@@ -664,12 +676,14 @@
         y: 12 + Math.random() * maxY
       };
     }
+    for (id = 0; id < puzzleSession.rows * puzzleSession.cols; id++) {
+      puzzlePos = PuzzleLayout.clampGroup(puzzlePos, [id], box, field.width, field.height);
+    }
     renderPuzzle();
   }
 
   function renderPuzzle() {
     puzzleField.innerHTML = "";
-    puzzleField.style.transform = "translate(" + puzzlePan.x + "px," + puzzlePan.y + "px)";
     var src = Puzzle.pictureSrc(puzzleSession);
     var cell = puzzleCell;
     var tab = puzzleTab;
@@ -772,12 +786,10 @@
       drag.moved = true;
       drag.ids.forEach(function (pid) {
         puzzlePos[pid] = { x: drag.starts[pid].x + dx, y: drag.starts[pid].y + dy };
-        var el = puzzleField.querySelector('[data-id="' + pid + '"]');
-        if (el) {
-          el.style.left = puzzlePos[pid].x + "px";
-          el.style.top = puzzlePos[pid].y + "px";
-        }
       });
+      var size = fieldSize();
+      puzzlePos = PuzzleLayout.clampGroup(puzzlePos, drag.ids, size.box, size.w, size.h);
+      applyPuzzlePos();
     });
 
     btn.addEventListener("pointerup", finishJig);
@@ -822,6 +834,8 @@
         ids.forEach(function (pid) {
           puzzlePos[pid] = { x: puzzlePos[pid].x + dx, y: puzzlePos[pid].y + dy };
         });
+        var size = fieldSize();
+        puzzlePos = PuzzleLayout.clampGroup(puzzlePos, groupIds(ids[0]), size.box, size.w, size.h);
         renderPuzzle();
         if (puzzleSession.complete) afterPuzzle();
         return;
@@ -829,51 +843,13 @@
     }
   }
 
-  puzzleField.addEventListener("pointerdown", function (event) {
-    if (event.target !== puzzleField) return;
-    if (event.button !== undefined && event.button !== 0) return;
-    drag = {
-      kind: "pan",
-      x: event.clientX,
-      y: event.clientY,
-      panX: puzzlePan.x,
-      panY: puzzlePan.y
-    };
-    try {
-      puzzleField.setPointerCapture(event.pointerId);
-    } catch (err) {}
-  });
-
-  puzzleField.addEventListener("pointermove", function (event) {
-    if (!drag || drag.kind !== "pan") return;
-    puzzlePan.x = drag.panX + (event.clientX - drag.x);
-    puzzlePan.y = drag.panY + (event.clientY - drag.y);
-    puzzleField.style.transform = "translate(" + puzzlePan.x + "px," + puzzlePan.y + "px)";
-  });
-
-  puzzleField.addEventListener("pointerup", function () {
-    if (drag && drag.kind === "pan") drag = null;
-  });
-  puzzleField.addEventListener("pointercancel", function () {
-    if (drag && drag.kind === "pan") drag = null;
-  });
-
   function centerCompletedPuzzle() {
-    var box = puzzleCell + puzzleTab * 2;
-    var minX = Infinity;
-    var minY = Infinity;
+    var ids = [];
     var id;
-    for (id = 0; id < puzzleSession.rows * puzzleSession.cols; id++) {
-      if (puzzlePos[id].x < minX) minX = puzzlePos[id].x;
-      if (puzzlePos[id].y < minY) minY = puzzlePos[id].y;
-    }
-    var width = puzzleSession.cols * puzzleCell + puzzleTab * 2;
-    var height = puzzleSession.rows * puzzleCell + puzzleTab * 2;
-    var stage = puzzleField.parentNode.getBoundingClientRect();
-    var banner = 300;
-    puzzlePan.x = (stage.width - width) / 2 - minX;
-    puzzlePan.y = (stage.height - banner - height) / 2 - minY;
-    puzzleField.style.transform = "translate(" + puzzlePan.x + "px," + puzzlePan.y + "px)";
+    for (id = 0; id < puzzleSession.rows * puzzleSession.cols; id++) ids.push(id);
+    var size = fieldSize();
+    puzzlePos = PuzzleLayout.centerGroup(puzzlePos, ids, size.box, size.w, size.h, 300);
+    applyPuzzlePos();
   }
 
   function afterPuzzle() {

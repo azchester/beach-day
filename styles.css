@@ -653,6 +653,7 @@ body {
   position: absolute;
   inset: 0;
   touch-action: none;
+  cursor: default;
 }
 
 .puzzle-kid {
