@@ -923,7 +923,7 @@
   }
 
   function renderPaint() {
-    if (paintOutline) paintOutline.removeAttribute("src");
+    if (paintOutline) paintOutline.src = Paint.pictureSrc(paintSession);
     var layout = Paint.layout(paintSession.pictureIndex, paintSession.difficulty);
     paintBlobs.innerHTML = "";
     var fontSize = paintSession.difficulty === "hard" ? "3.4" : paintSession.difficulty === "medium" ? "4.4" : "5.4";
@@ -931,8 +931,8 @@
       var pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
       pathEl.setAttribute("d", cell.d);
       pathEl.setAttribute("data-cell", String(cell.id));
-      pathEl.setAttribute("stroke", "#111111");
-      pathEl.setAttribute("stroke-width", "0.55");
+      pathEl.setAttribute("stroke", "#2a2438");
+      pathEl.setAttribute("stroke-width", "0.35");
       pathEl.setAttribute("stroke-linejoin", "round");
       pathEl.setAttribute("stroke-linecap", "round");
       if (paintSession.filled[cell.id]) {
