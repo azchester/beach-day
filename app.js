@@ -33,6 +33,13 @@
   var pathBoard = document.getElementById("path-board");
   var puzzleScreen = document.getElementById("puzzle-screen");
   var puzzleField = document.getElementById("puzzle-field");
+  var puzzlePreview = document.getElementById("puzzle-preview");
+  var puzzlePreviewImg = document.getElementById("puzzle-preview-img");
+  var puzzleTidy = document.getElementById("puzzle-tidy");
+  var puzzlePeek = document.getElementById("puzzle-peek");
+  var puzzlePeekImg = document.getElementById("puzzle-peek-img");
+  var puzzlePeekClose = document.getElementById("puzzle-peek-close");
+  var puzzlePeekDim = document.getElementById("puzzle-peek-dim");
   var MENU_GAMES = ["tidy", "puzzle", "path"];
   var CRAB_X = { tidy: "-180px", puzzle: "0px", path: "180px" };
   var puzzleSession = null;
@@ -69,6 +76,20 @@
       pathAdvanceTimer = null;
     }
     stopCelebrate();
+  }
+
+  function closePuzzlePeek() {
+    if (puzzlePeek) hide(puzzlePeek);
+  }
+
+  function openPuzzlePeek() {
+    if (!puzzleSession || !puzzlePeek || !puzzlePeekImg) return;
+    puzzlePeekImg.src = Puzzle.pictureSrc(puzzleSession);
+    show(puzzlePeek);
+  }
+
+  function peekOpen() {
+    return puzzlePeek && !puzzlePeek.hidden;
   }
 
   function paintKids() {
@@ -175,6 +196,7 @@
     hide(pathScreen);
     hide(puzzleScreen);
     hide(difficultyScreen);
+    closePuzzlePeek();
     hideCheer();
     show(menuScreen);
     setMenuPick(menuPick || "tidy", false);
@@ -659,8 +681,51 @@
     });
   }
 
+  function rectOnField(el, field) {
+    if (!el) return { x: 0, y: 0, w: 0, h: 0 };
+    var r = el.getBoundingClientRect();
+    return {
+      x: r.left - field.left,
+      y: r.top - field.top,
+      w: r.width,
+      h: r.height
+    };
+  }
+
+  function unionRect(a, b) {
+    var x = Math.min(a.x, b.x);
+    var y = Math.min(a.y, b.y);
+    var r = Math.max(a.x + a.w, b.x + b.w);
+    var bot = Math.max(a.y + a.h, b.y + b.h);
+    return { x: x, y: y, w: r - x, h: bot - y };
+  }
+
+  function tidyPuzzle() {
+    if (!puzzleSession || puzzleSession.complete || peekOpen()) return;
+    var field = puzzleField.getBoundingClientRect();
+    var kid = puzzleScreen.querySelector(".puzzle-kid");
+    var preview = rectOnField(puzzlePreview, field);
+    var reserve = unionRect(rectOnField(puzzleTidy, field), rectOnField(kid, field));
+    puzzlePos = PuzzleLayout.tidyPositions({
+      groups: puzzleSession.groups,
+      pos: puzzlePos,
+      box: puzzleCell + puzzleTab * 2,
+      fieldW: field.width,
+      fieldH: field.height,
+      preview: preview,
+      reserve: reserve,
+      gap: 10,
+      complete: puzzleSession.complete
+    });
+    applyPuzzlePos();
+  }
+
   function startPuzzleDeal(next) {
+    closePuzzlePeek();
     puzzleSession = next;
+    var src = Puzzle.pictureSrc(puzzleSession);
+    if (puzzlePreviewImg) puzzlePreviewImg.src = src;
+    if (puzzlePeekImg && peekOpen()) puzzlePeekImg.src = src;
     var m = puzzleMetrics(puzzleSession);
     puzzleCell = m.cell;
     puzzleTab = m.tab;
@@ -685,6 +750,8 @@
   function renderPuzzle() {
     puzzleField.innerHTML = "";
     var src = Puzzle.pictureSrc(puzzleSession);
+    if (puzzlePreviewImg) puzzlePreviewImg.src = src;
+    if (puzzlePeekImg && peekOpen()) puzzlePeekImg.src = src;
     var cell = puzzleCell;
     var tab = puzzleTab;
     var box = cell + tab * 2;
@@ -753,6 +820,7 @@
 
   function bindJigDrag(btn, id) {
     btn.addEventListener("pointerdown", function (event) {
+      if (peekOpen()) return;
       if (event.button !== undefined && event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();
@@ -779,6 +847,7 @@
     });
 
     btn.addEventListener("pointermove", function (event) {
+      if (peekOpen()) return;
       if (!drag || drag.kind !== "jig") return;
       var dx = event.clientX - drag.x;
       var dy = event.clientY - drag.y;
@@ -862,6 +931,11 @@
     show(playAgainBtn);
     show(moreGamesBtn);
   }
+
+  if (puzzleTidy) puzzleTidy.addEventListener("click", tidyPuzzle);
+  if (puzzlePreview) puzzlePreview.addEventListener("click", openPuzzlePeek);
+  if (puzzlePeekClose) puzzlePeekClose.addEventListener("click", closePuzzlePeek);
+  if (puzzlePeekDim) puzzlePeekDim.addEventListener("click", closePuzzlePeek);
 
   paintKids();
   setMenuPick("tidy", false);
