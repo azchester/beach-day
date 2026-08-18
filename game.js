@@ -26,15 +26,30 @@
     { kind: "sandcastle", variant: "turret", color: "orange", label: "castle" },
     { kind: "sandcastle", variant: "drip", color: "orange", label: "castle" },
     { kind: "sandcastle", variant: "bucket", color: "orange", label: "castle" },
+    { kind: "sandcastle", variant: "keep", color: "sand", label: "castle" },
+    { kind: "sandcastle", variant: "mound", color: "sand", label: "castle" },
+    { kind: "sandcastle", variant: "cone", color: "sand", label: "castle" },
+    { kind: "sandcastle", variant: "keep", color: "orange", label: "castle" },
+    { kind: "sandcastle", variant: "mound", color: "orange", label: "castle" },
+    { kind: "sandcastle", variant: "cone", color: "orange", label: "castle" },
     { kind: "shell", variant: "scallop", color: "peach", label: "shell" },
     { kind: "shell", variant: "snail", color: "peach", label: "shell" },
     { kind: "shell", variant: "spiral", color: "cream", label: "shell" },
     { kind: "shell", variant: "scallop", color: "orange", label: "shell" },
     { kind: "shell", variant: "snail", color: "orange", label: "shell" },
     { kind: "shell", variant: "spiral", color: "orange", label: "shell" },
+    { kind: "shell", variant: "conch", color: "peach", label: "shell" },
+    { kind: "shell", variant: "cowrie", color: "peach", label: "shell" },
+    { kind: "shell", variant: "clam", color: "peach", label: "shell" },
+    { kind: "shell", variant: "conch", color: "orange", label: "shell" },
+    { kind: "shell", variant: "cowrie", color: "orange", label: "shell" },
+    { kind: "shell", variant: "clam", color: "orange", label: "shell" },
     { kind: "rock", variant: "pebble", color: "gray", label: "rock" },
     { kind: "rock", variant: "speckled", color: "gray", label: "rock" },
-    { kind: "rock", variant: "driftwood", color: "brown", label: "stick" }
+    { kind: "rock", variant: "driftwood", color: "brown", label: "stick" },
+    { kind: "rock", variant: "barnacle", color: "gray", label: "rock" },
+    { kind: "rock", variant: "kelp", color: "brown", label: "stick" },
+    { kind: "rock", variant: "seaglass", color: "green", label: "rock" }
   ];
 
   function recipe(count, allowSpiral, lookalike, twoRule) {

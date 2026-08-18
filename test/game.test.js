@@ -215,8 +215,11 @@ test("rock pool label names rocks and sticks", function () {
 });
 
 test("driftwood is named stick", function () {
-  var s = TidePool.createSession({ difficulty: "easy", random: always(0.99) });
-  var wood = s.items.filter(function (i) { return i.variant === "driftwood"; })[0];
+  var wood = null;
+  for (var i = 0; i < 80 && !wood; i++) {
+    var s = TidePool.createSessionAt(5, { difficulty: "easy", random: lcg(i + 7) });
+    wood = s.items.filter(function (item) { return item.variant === "driftwood"; })[0] || null;
+  }
   assert.ok(wood);
   assert.strictEqual(wood.label, "stick");
 });
@@ -246,6 +249,47 @@ test("two different random stubs can produce different beaches", function () {
     sorted(b.items.map(function (i) { return i.id; })).join(",");
   var sameOrder = a.sandIds.join(",") === b.sandIds.join(",");
   assert.ok(!sameItems || !sameOrder);
+});
+
+function lcg(seed) {
+  var s = seed >>> 0;
+  return function () {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+
+test("easy can draw the new castle, shell, and rock shapes", function () {
+  var seenCastle = {};
+  var seenShell = {};
+  var seenRock = {};
+  for (var i = 0; i < 90; i++) {
+    var s = TidePool.createSessionAt(i % 6, { difficulty: "easy", random: lcg(i + 3) });
+    s.items.forEach(function (item) {
+      if (item.kind === "sandcastle") seenCastle[item.variant] = true;
+      if (item.kind === "shell") seenShell[item.variant] = true;
+      if (item.kind === "rock") seenRock[item.variant] = true;
+    });
+  }
+  ["turret", "drip", "bucket", "keep", "mound", "cone"].forEach(function (v) {
+    assert.ok(seenCastle[v], "missing castle " + v);
+  });
+  ["scallop", "snail", "conch", "cowrie", "clam"].forEach(function (v) {
+    assert.ok(seenShell[v], "missing shell " + v);
+  });
+  ["pebble", "speckled", "driftwood", "barnacle", "kelp", "seaglass"].forEach(function (v) {
+    assert.ok(seenRock[v], "missing rock " + v);
+  });
+});
+
+test("kelp is named stick", function () {
+  var found = null;
+  for (var i = 0; i < 80 && !found; i++) {
+    var s = TidePool.createSessionAt(5, { difficulty: "easy", random: lcg(i + 20) });
+    found = s.items.filter(function (item) { return item.variant === "kelp"; })[0] || null;
+  }
+  assert.ok(found);
+  assert.strictEqual(found.label, "stick");
 });
 
 if (failed) {
