@@ -973,6 +973,11 @@ body {
   transform-origin: center;
 }
 
+.paint-blobs path.paint-ink {
+  pointer-events: none;
+  cursor: default;
+}
+
 .paint-blobs path:not(.paint-hit) {
   stroke: #2a2438;
   stroke-width: 1.1;

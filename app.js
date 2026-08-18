@@ -1210,10 +1210,12 @@
     if (Array.isArray(ink)) {
       ink.forEach(function (d) {
         var inkEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        inkEl.setAttribute("class", "paint-ink");
         inkEl.setAttribute("d", d);
         inkEl.setAttribute("fill", "none");
         inkEl.setAttribute("stroke", "#2a2438");
         inkEl.setAttribute("stroke-width", "1.1");
+        inkEl.setAttribute("pointer-events", "none");
         paintBlobs.appendChild(inkEl);
       });
     }
