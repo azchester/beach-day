@@ -160,8 +160,31 @@
           <img class="sun small" src="assets/sun.png" alt="" aria-hidden="true" />
         </div>
         <div class="puzzle-stage">
+          <button type="button" id="puzzle-preview" class="puzzle-preview" aria-label="finished picture">
+            <img id="puzzle-preview-img" alt="" draggable="false" />
+          </button>
           <div id="puzzle-field" class="puzzle-field" aria-label="puzzle pieces"></div>
+          <button type="button" id="puzzle-tidy" class="puzzle-tidy" aria-label="Tidy">
+            <svg class="puzzle-tidy-mark" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="none"
+                stroke="#111111"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 3.5 L13.2 7.2 L17 8.4 L13.2 9.6 L12 13.3 L10.8 9.6 L7 8.4 L10.8 7.2 Z M6.5 15.5 L10 14.2 L17.5 19.5 L15.8 21 L8.2 15.8 Z"
+              />
+            </svg>
+            <span>Tidy</span>
+          </button>
           <div class="path-kid puzzle-kid" data-kid aria-hidden="true"></div>
+          <div id="puzzle-peek" class="puzzle-peek hidden" hidden>
+            <button type="button" id="puzzle-peek-dim" class="puzzle-peek-dim" aria-label="close picture"></button>
+            <div class="puzzle-peek-frame">
+              <img id="puzzle-peek-img" alt="" draggable="false" />
+              <button type="button" id="puzzle-peek-close" class="puzzle-peek-close" aria-label="close picture">X</button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -187,6 +210,7 @@
     <script src="game.js"></script>
     <script src="path.js"></script>
     <script src="puzzle.js"></script>
+    <script src="puzzle-layout.js"></script>
     <script src="menu.js"></script>
     <script src="app.js"></script>
   </body>

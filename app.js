@@ -33,11 +33,17 @@
   var pathBoard = document.getElementById("path-board");
   var puzzleScreen = document.getElementById("puzzle-screen");
   var puzzleField = document.getElementById("puzzle-field");
+  var puzzlePreview = document.getElementById("puzzle-preview");
+  var puzzlePreviewImg = document.getElementById("puzzle-preview-img");
+  var puzzleTidy = document.getElementById("puzzle-tidy");
+  var puzzlePeek = document.getElementById("puzzle-peek");
+  var puzzlePeekImg = document.getElementById("puzzle-peek-img");
+  var puzzlePeekClose = document.getElementById("puzzle-peek-close");
+  var puzzlePeekDim = document.getElementById("puzzle-peek-dim");
   var puzzleSession = null;
   var puzzlePos = {};
   var puzzleCell = 72;
   var puzzleTab = 16;
-  var puzzlePan = { x: 0, y: 0 };
   var cheerEl = document.getElementById("cheer");
   var cheerWords = document.getElementById("cheer-words");
   var playAgainBtn = document.getElementById("play-again");
@@ -68,6 +74,20 @@
       pathAdvanceTimer = null;
     }
     stopCelebrate();
+  }
+
+  function closePuzzlePeek() {
+    if (puzzlePeek) hide(puzzlePeek);
+  }
+
+  function openPuzzlePeek() {
+    if (!puzzleSession || !puzzlePeek || !puzzlePeekImg) return;
+    puzzlePeekImg.src = Puzzle.pictureSrc(puzzleSession);
+    show(puzzlePeek);
+  }
+
+  function peekOpen() {
+    return puzzlePeek && !puzzlePeek.hidden;
   }
 
   function paintKids() {
@@ -174,6 +194,7 @@
     hide(pathScreen);
     hide(puzzleScreen);
     hide(difficultyScreen);
+    closePuzzlePeek();
     hideCheer();
     show(menuScreen);
     setMenuPick(menuPick || "tidy", false);
@@ -656,9 +677,65 @@
     });
   }
 
+  function fieldSize() {
+    var field = puzzleField.getBoundingClientRect();
+    return { w: field.width, h: field.height, box: puzzleCell + puzzleTab * 2 };
+  }
+
+  function applyPuzzlePos() {
+    Object.keys(puzzlePos).forEach(function (id) {
+      var el = puzzleField.querySelector('[data-id="' + id + '"]');
+      if (!el) return;
+      el.style.left = puzzlePos[id].x + "px";
+      el.style.top = puzzlePos[id].y + "px";
+    });
+  }
+
+  function rectOnField(el, field) {
+    if (!el) return { x: 0, y: 0, w: 0, h: 0 };
+    var r = el.getBoundingClientRect();
+    return {
+      x: r.left - field.left,
+      y: r.top - field.top,
+      w: r.width,
+      h: r.height
+    };
+  }
+
+  function unionRect(a, b) {
+    var x = Math.min(a.x, b.x);
+    var y = Math.min(a.y, b.y);
+    var r = Math.max(a.x + a.w, b.x + b.w);
+    var bot = Math.max(a.y + a.h, b.y + b.h);
+    return { x: x, y: y, w: r - x, h: bot - y };
+  }
+
+  function tidyPuzzle() {
+    if (!puzzleSession || puzzleSession.complete || peekOpen()) return;
+    var field = puzzleField.getBoundingClientRect();
+    var kid = puzzleScreen.querySelector(".puzzle-kid");
+    var preview = rectOnField(puzzlePreview, field);
+    var reserve = unionRect(rectOnField(puzzleTidy, field), rectOnField(kid, field));
+    puzzlePos = PuzzleLayout.tidyPositions({
+      groups: puzzleSession.groups,
+      pos: puzzlePos,
+      box: puzzleCell + puzzleTab * 2,
+      fieldW: field.width,
+      fieldH: field.height,
+      preview: preview,
+      reserve: reserve,
+      gap: 10,
+      complete: puzzleSession.complete
+    });
+    applyPuzzlePos();
+  }
+
   function startPuzzleDeal(next) {
+    closePuzzlePeek();
     puzzleSession = next;
-    puzzlePan = { x: 0, y: 0 };
+    var src = Puzzle.pictureSrc(puzzleSession);
+    if (puzzlePreviewImg) puzzlePreviewImg.src = src;
+    if (puzzlePeekImg && peekOpen()) puzzlePeekImg.src = src;
     var m = puzzleMetrics(puzzleSession);
     puzzleCell = m.cell;
     puzzleTab = m.tab;
@@ -674,13 +751,17 @@
         y: 12 + Math.random() * maxY
       };
     }
+    for (id = 0; id < puzzleSession.rows * puzzleSession.cols; id++) {
+      puzzlePos = PuzzleLayout.clampGroup(puzzlePos, [id], box, field.width, field.height);
+    }
     renderPuzzle();
   }
 
   function renderPuzzle() {
     puzzleField.innerHTML = "";
-    puzzleField.style.transform = "translate(" + puzzlePan.x + "px," + puzzlePan.y + "px)";
     var src = Puzzle.pictureSrc(puzzleSession);
+    if (puzzlePreviewImg) puzzlePreviewImg.src = src;
+    if (puzzlePeekImg && peekOpen()) puzzlePeekImg.src = src;
     var cell = puzzleCell;
     var tab = puzzleTab;
     var box = cell + tab * 2;
@@ -749,18 +830,22 @@
 
   function bindJigDrag(btn, id) {
     btn.addEventListener("pointerdown", function (event) {
+      if (peekOpen()) return;
       if (event.button !== undefined && event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();
       var ids = groupIds(id);
       var starts = {};
+      var unclamped = {};
       ids.forEach(function (pid) {
         starts[pid] = { x: puzzlePos[pid].x, y: puzzlePos[pid].y };
+        unclamped[pid] = { x: starts[pid].x, y: starts[pid].y };
       });
       drag = {
         kind: "jig",
         ids: ids,
         starts: starts,
+        unclamped: unclamped,
         x: event.clientX,
         y: event.clientY,
         moved: false
@@ -775,19 +860,19 @@
     });
 
     btn.addEventListener("pointermove", function (event) {
+      if (peekOpen()) return;
       if (!drag || drag.kind !== "jig") return;
       var dx = event.clientX - drag.x;
       var dy = event.clientY - drag.y;
       if (!drag.moved && Math.hypot(dx, dy) < 6) return;
       drag.moved = true;
       drag.ids.forEach(function (pid) {
-        puzzlePos[pid] = { x: drag.starts[pid].x + dx, y: drag.starts[pid].y + dy };
-        var el = puzzleField.querySelector('[data-id="' + pid + '"]');
-        if (el) {
-          el.style.left = puzzlePos[pid].x + "px";
-          el.style.top = puzzlePos[pid].y + "px";
-        }
+        drag.unclamped[pid] = { x: drag.starts[pid].x + dx, y: drag.starts[pid].y + dy };
+        puzzlePos[pid] = { x: drag.unclamped[pid].x, y: drag.unclamped[pid].y };
       });
+      var size = fieldSize();
+      puzzlePos = PuzzleLayout.clampGroup(puzzlePos, drag.ids, size.box, size.w, size.h);
+      applyPuzzlePos();
     });
 
     btn.addEventListener("pointerup", finishJig);
@@ -797,16 +882,24 @@
   function finishJig() {
     if (!drag || drag.kind !== "jig") return;
     var ids = drag.ids;
+    var unclamped = drag.unclamped;
     drag = null;
     ids.forEach(function (pid) {
       var el = puzzleField.querySelector('[data-id="' + pid + '"]');
       if (el) el.classList.remove("dragging");
     });
-    trySnapGroup(ids);
+    trySnapGroup(ids, unclamped);
   }
 
-  function trySnapGroup(ids) {
-    var threshold = puzzleCell / 3;
+  function unclampedPos(raw, id) {
+    if (raw) {
+      if (raw[id] !== undefined) return raw[id];
+      if (raw[String(id)] !== undefined) return raw[String(id)];
+    }
+    return puzzlePos[id];
+  }
+
+  function trySnapGroup(ids, raw) {
     var i;
     var n;
     var nid;
@@ -819,19 +912,27 @@
         if (!Puzzle.canSnap(puzzleSession, ids[i], nid)) continue;
         var rcA = Puzzle.rowCol(puzzleSession, ids[i]);
         var rcB = Puzzle.rowCol(puzzleSession, nid);
-        var expectX = puzzlePos[nid].x + (rcA.col - rcB.col) * puzzleCell;
-        var expectY = puzzlePos[nid].y + (rcA.row - rcB.row) * puzzleCell;
-        if (Math.hypot(puzzlePos[ids[i]].x - expectX, puzzlePos[ids[i]].y - expectY) > threshold) {
-          continue;
-        }
+        var from = unclampedPos(raw, ids[i]);
+        // Use unclamped starts+dx/dy; a clamped draw pos would miss an off-field seat.
+        var seat = PuzzleLayout.snapSeat(
+          from,
+          puzzlePos[nid],
+          rcA.col - rcB.col,
+          rcA.row - rcB.row,
+          puzzleCell
+        );
+        if (!seat.ok) continue;
         var result = Puzzle.snap(puzzleSession, ids[i], nid);
         if (!result.ok) continue;
         puzzleSession = result.session;
-        var dx = expectX - puzzlePos[ids[i]].x;
-        var dy = expectY - puzzlePos[ids[i]].y;
+        var dx = seat.x - from.x;
+        var dy = seat.y - from.y;
         ids.forEach(function (pid) {
-          puzzlePos[pid] = { x: puzzlePos[pid].x + dx, y: puzzlePos[pid].y + dy };
+          var p = unclampedPos(raw, pid);
+          puzzlePos[pid] = { x: p.x + dx, y: p.y + dy };
         });
+        var size = fieldSize();
+        puzzlePos = PuzzleLayout.clampGroup(puzzlePos, groupIds(ids[0]), size.box, size.w, size.h);
         renderPuzzle();
         if (puzzleSession.complete) afterPuzzle();
         return;
@@ -839,51 +940,13 @@
     }
   }
 
-  puzzleField.addEventListener("pointerdown", function (event) {
-    if (event.target !== puzzleField) return;
-    if (event.button !== undefined && event.button !== 0) return;
-    drag = {
-      kind: "pan",
-      x: event.clientX,
-      y: event.clientY,
-      panX: puzzlePan.x,
-      panY: puzzlePan.y
-    };
-    try {
-      puzzleField.setPointerCapture(event.pointerId);
-    } catch (err) {}
-  });
-
-  puzzleField.addEventListener("pointermove", function (event) {
-    if (!drag || drag.kind !== "pan") return;
-    puzzlePan.x = drag.panX + (event.clientX - drag.x);
-    puzzlePan.y = drag.panY + (event.clientY - drag.y);
-    puzzleField.style.transform = "translate(" + puzzlePan.x + "px," + puzzlePan.y + "px)";
-  });
-
-  puzzleField.addEventListener("pointerup", function () {
-    if (drag && drag.kind === "pan") drag = null;
-  });
-  puzzleField.addEventListener("pointercancel", function () {
-    if (drag && drag.kind === "pan") drag = null;
-  });
-
   function centerCompletedPuzzle() {
-    var box = puzzleCell + puzzleTab * 2;
-    var minX = Infinity;
-    var minY = Infinity;
+    var ids = [];
     var id;
-    for (id = 0; id < puzzleSession.rows * puzzleSession.cols; id++) {
-      if (puzzlePos[id].x < minX) minX = puzzlePos[id].x;
-      if (puzzlePos[id].y < minY) minY = puzzlePos[id].y;
-    }
-    var width = puzzleSession.cols * puzzleCell + puzzleTab * 2;
-    var height = puzzleSession.rows * puzzleCell + puzzleTab * 2;
-    var stage = puzzleField.parentNode.getBoundingClientRect();
-    var banner = 300;
-    puzzlePan.x = (stage.width - width) / 2 - minX;
-    puzzlePan.y = (stage.height - banner - height) / 2 - minY;
-    puzzleField.style.transform = "translate(" + puzzlePan.x + "px," + puzzlePan.y + "px)";
+    for (id = 0; id < puzzleSession.rows * puzzleSession.cols; id++) ids.push(id);
+    var size = fieldSize();
+    puzzlePos = PuzzleLayout.centerGroup(puzzlePos, ids, size.box, size.w, size.h, 300);
+    applyPuzzlePos();
   }
 
   function afterPuzzle() {
@@ -896,6 +959,11 @@
     show(playAgainBtn);
     show(moreGamesBtn);
   }
+
+  if (puzzleTidy) puzzleTidy.addEventListener("click", tidyPuzzle);
+  if (puzzlePreview) puzzlePreview.addEventListener("click", openPuzzlePeek);
+  if (puzzlePeekClose) puzzlePeekClose.addEventListener("click", closePuzzlePeek);
+  if (puzzlePeekDim) puzzlePeekDim.addEventListener("click", closePuzzlePeek);
 
   window.addEventListener("resize", function () {
     if (menuScreen && !menuScreen.hidden) placeMenuCrab(menuPick);

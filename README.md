@@ -21,6 +21,10 @@ Tap Beach Puzzle, then Easy, Medium, or Hard.
 
 One of twelve beach pictures is cut into pieces. Easy is 9, Medium is 16, Hard is 25. Drag a piece next to its neighbor. If they belong together they snap. No timer, no score.
 
+Tap the small picture in the corner to peek at the finished scene; tap X to close it.
+Tap Tidy to line clumps along the top and leftover pieces along the bottom.
+Pieces stay on the sand. The sand itself does not slide.
+
 ### Crab Path
 
 Tap Crab Path, then Easy, Medium, or Hard.
@@ -35,5 +39,6 @@ Tap **Games** any time to come back to the menu.
 node test/game.test.js
 node test/path.test.js
 node test/puzzle.test.js
+node test/puzzle-layout.test.js
 node test/menu.test.js
 ```
