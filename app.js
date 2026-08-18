@@ -36,6 +36,7 @@
   var paintScreen = document.getElementById("paint-screen");
   var paintOutline = document.getElementById("paint-outline");
   var paintBlobs = document.getElementById("paint-blobs");
+  var paintLabels = document.getElementById("paint-labels");
   var paintPots = document.getElementById("paint-pots");
   var paintSession = null;
   var MENU_GAMES = ["tidy", "puzzle", "path", "paint"];
@@ -926,7 +927,8 @@
     if (paintOutline) paintOutline.src = Paint.pictureSrc(paintSession);
     var layout = Paint.layout(paintSession.pictureIndex, paintSession.difficulty);
     paintBlobs.innerHTML = "";
-    var fontSize = paintSession.difficulty === "hard" ? "3.4" : paintSession.difficulty === "medium" ? "4.4" : "5.4";
+    if (paintLabels) paintLabels.innerHTML = "";
+    var fontSize = paintSession.difficulty === "hard" ? "4.2" : paintSession.difficulty === "medium" ? "5.2" : "6";
     layout.forEach(function (cell) {
       var pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
       pathEl.setAttribute("d", cell.d);
@@ -938,21 +940,26 @@
       if (paintSession.filled[cell.id]) {
         pathEl.setAttribute("fill", Paint.hex(Paint.colorName(paintSession.pictureIndex, cell.color)));
         paintBlobs.appendChild(pathEl);
-      } else {
-        pathEl.setAttribute("fill", "#ffffff");
-        paintBlobs.appendChild(pathEl);
-        var label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        label.setAttribute("x", String(cell.lx != null ? cell.lx : 50));
-        label.setAttribute("y", String((cell.ly != null ? cell.ly : 50) + 0.35));
-        label.setAttribute("text-anchor", "middle");
-        label.setAttribute("dominant-baseline", "middle");
-        label.setAttribute("font-family", "Tahoma, Nunito, sans-serif");
-        label.setAttribute("font-size", fontSize);
-        label.setAttribute("fill", "#333333");
-        label.setAttribute("pointer-events", "none");
-        label.textContent = String(cell.color);
-        paintBlobs.appendChild(label);
+        return;
       }
+      pathEl.setAttribute("fill", "#ffffff");
+      paintBlobs.appendChild(pathEl);
+      var label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("x", String(cell.lx != null ? cell.lx : 50));
+      label.setAttribute("y", String((cell.ly != null ? cell.ly : 50) + 0.35));
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("dominant-baseline", "middle");
+      label.setAttribute("font-family", "Tahoma, Nunito, sans-serif");
+      label.setAttribute("font-size", fontSize);
+      label.setAttribute("font-weight", "700");
+      label.setAttribute("fill", "#1a1a1a");
+      label.setAttribute("stroke", "#fff8ee");
+      label.setAttribute("stroke-width", "0.85");
+      label.setAttribute("paint-order", "stroke");
+      label.setAttribute("pointer-events", "none");
+      label.textContent = String(cell.color);
+      if (paintLabels) paintLabels.appendChild(label);
+      else paintBlobs.appendChild(label);
     });
 
     var pots = Paint.palette(paintSession.pictureIndex, paintSession.difficulty);
