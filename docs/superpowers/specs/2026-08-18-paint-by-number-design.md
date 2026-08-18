@@ -4,6 +4,8 @@ Date: 2026-08-18
 Location: `ai-sync/beach-day/`  
 Players: an adult and a child about to turn 4, sitting together
 
+**Pictures, layouts, outlines, and palette use:** see `2026-08-18-paint-scenes-design.md`. That spec replaces those sections below. Fill rules, session shape, and menu flow here still apply.
+
 ## Purpose
 
 A fourth Beach Day game. She fills a generated coloring-book outline by matching numbered pots to numbered blobs. He talks it through. No timer, no losing score, no required reading.
