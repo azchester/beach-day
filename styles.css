@@ -237,13 +237,28 @@ body {
   justify-content: center;
 }
 
-.puzzle-art img {
+.puzzle-thumb {
+  position: relative;
   width: 120px;
   height: 90px;
-  object-fit: cover;
   border-radius: 0.8rem;
   border: 4px solid var(--ink);
+  overflow: hidden;
   pointer-events: none;
+}
+
+.puzzle-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.puzzle-seams {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .path-art {
@@ -819,7 +834,7 @@ body {
     width: 4.6rem;
   }
 
-  .puzzle-art img {
+  .puzzle-thumb {
     width: 96px;
     height: 72px;
   }
