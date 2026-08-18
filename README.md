@@ -33,7 +33,7 @@ Help the crab hop to the bucket. Only the glowing squares next door are safe. Ro
 
 ### Paint by Number
 
-Tap Paint by Number and a coloring-book picture is waiting. Tap a numbered pot, then tap every blob with that number. Wrong number? It wiggles and stays empty. No Easy / Medium / Hard, no timer, no score.
+Tap Paint by Number and a beach picture is waiting. Tap a numbered pot, then tap every blob with that number — sky, water, and sand too. Wrong number? It wiggles and stays empty. No Easy / Medium / Hard, no timer, no score.
 
 Tap **Games** any time to come back to the menu.
 

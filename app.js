@@ -49,7 +49,6 @@
   var puzzlePeekClose = document.getElementById("puzzle-peek-close");
   var puzzlePeekDim = document.getElementById("puzzle-peek-dim");
   var paintScreen = document.getElementById("paint-screen");
-  var paintOutline = document.getElementById("paint-outline");
   var paintBlobs = document.getElementById("paint-blobs");
   var paintLabels = document.getElementById("paint-labels");
   var paintPots = document.getElementById("paint-pots");
@@ -1169,7 +1168,6 @@
   }
 
   function renderPaint() {
-    if (paintOutline) paintOutline.src = Paint.pictureSrc(paintSession);
     var layout = Paint.layout(paintSession.pictureIndex);
     paintBlobs.innerHTML = "";
     if (paintLabels) paintLabels.innerHTML = "";
@@ -1179,7 +1177,7 @@
       pathEl.setAttribute("d", cell.d);
       pathEl.setAttribute("data-cell", String(cell.id));
       pathEl.setAttribute("stroke", "#2a2438");
-      pathEl.setAttribute("stroke-width", "0.35");
+      pathEl.setAttribute("stroke-width", "1.1");
       pathEl.setAttribute("stroke-linejoin", "round");
       pathEl.setAttribute("stroke-linecap", "round");
       if (paintSession.filled[cell.id]) {
@@ -1188,16 +1186,6 @@
         pathEl.setAttribute("fill", "#ffffff");
       }
       paintBlobs.appendChild(pathEl);
-      var hit = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      hit.setAttribute("d", cell.d);
-      hit.setAttribute("data-cell", String(cell.id));
-      hit.setAttribute("class", "paint-hit");
-      hit.setAttribute("fill", "none");
-      hit.setAttribute("stroke", "rgba(0,0,0,0.001)");
-      hit.setAttribute("stroke-width", "5");
-      hit.setAttribute("stroke-linejoin", "round");
-      hit.setAttribute("stroke-linecap", "round");
-      paintBlobs.appendChild(hit);
       if (paintSession.filled[cell.id]) {
         return;
       }
@@ -1217,6 +1205,29 @@
       label.textContent = String(cell.color);
       if (paintLabels) paintLabels.appendChild(label);
       else paintBlobs.appendChild(label);
+    });
+    var ink = window.PAINT_INK && window.PAINT_INK[Paint.pictureId(paintSession)];
+    if (Array.isArray(ink)) {
+      ink.forEach(function (d) {
+        var inkEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        inkEl.setAttribute("d", d);
+        inkEl.setAttribute("fill", "none");
+        inkEl.setAttribute("stroke", "#2a2438");
+        inkEl.setAttribute("stroke-width", "1.1");
+        paintBlobs.appendChild(inkEl);
+      });
+    }
+    layout.forEach(function (cell) {
+      var hit = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      hit.setAttribute("d", cell.d);
+      hit.setAttribute("data-cell", String(cell.id));
+      hit.setAttribute("class", "paint-hit");
+      hit.setAttribute("fill", "none");
+      hit.setAttribute("stroke", "rgba(0,0,0,0.001)");
+      hit.setAttribute("stroke-width", "5");
+      hit.setAttribute("stroke-linejoin", "round");
+      hit.setAttribute("stroke-linecap", "round");
+      paintBlobs.appendChild(hit);
     });
 
     var pots = Paint.palette(paintSession.pictureIndex);
