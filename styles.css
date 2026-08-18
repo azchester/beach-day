@@ -780,7 +780,7 @@ body {
   aspect-ratio: 1;
   justify-self: end;
   margin-right: 0.4rem;
-  background: var(--foam);
+  background: #fff;
   border: 5px solid var(--ink);
   border-radius: 1.1rem;
   overflow: hidden;
@@ -788,12 +788,7 @@ body {
 }
 
 .paint-outline {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  pointer-events: none;
+  display: none;
 }
 
 .paint-blobs {
@@ -805,6 +800,8 @@ body {
 
 .paint-blobs path {
   cursor: pointer;
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 .paint-blobs path.wiggle {

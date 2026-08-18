@@ -923,33 +923,32 @@
   }
 
   function renderPaint() {
-    var src = Paint.pictureSrc(paintSession);
-    paintOutline.src = src;
+    if (paintOutline) paintOutline.removeAttribute("src");
     var layout = Paint.layout(paintSession.pictureIndex, paintSession.difficulty);
     paintBlobs.innerHTML = "";
+    var fontSize = paintSession.difficulty === "hard" ? "3.4" : paintSession.difficulty === "medium" ? "4.4" : "5.4";
     layout.forEach(function (cell) {
       var pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
       pathEl.setAttribute("d", cell.d);
       pathEl.setAttribute("data-cell", String(cell.id));
-      pathEl.setAttribute("stroke", "#2a2438");
-      pathEl.setAttribute("stroke-width", "1.4");
+      pathEl.setAttribute("stroke", "#111111");
+      pathEl.setAttribute("stroke-width", "0.55");
       pathEl.setAttribute("stroke-linejoin", "round");
+      pathEl.setAttribute("stroke-linecap", "round");
       if (paintSession.filled[cell.id]) {
         pathEl.setAttribute("fill", Paint.hex(Paint.colorName(paintSession.pictureIndex, cell.color)));
         paintBlobs.appendChild(pathEl);
       } else {
-        pathEl.setAttribute("fill", "rgba(255,248,238,0.35)");
+        pathEl.setAttribute("fill", "#ffffff");
         paintBlobs.appendChild(pathEl);
         var label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        var bb = pathEl.getBBox();
-        label.setAttribute("x", String(bb.x + bb.width / 2));
-        label.setAttribute("y", String(bb.y + bb.height / 2 + 1.2));
+        label.setAttribute("x", String(cell.lx != null ? cell.lx : 50));
+        label.setAttribute("y", String((cell.ly != null ? cell.ly : 50) + 0.35));
         label.setAttribute("text-anchor", "middle");
         label.setAttribute("dominant-baseline", "middle");
-        label.setAttribute("font-family", "Nunito, sans-serif");
-        label.setAttribute("font-weight", "800");
-        label.setAttribute("font-size", paintSession.difficulty === "hard" ? "4" : "6");
-        label.setAttribute("fill", "#2a2438");
+        label.setAttribute("font-family", "Tahoma, Nunito, sans-serif");
+        label.setAttribute("font-size", fontSize);
+        label.setAttribute("fill", "#333333");
         label.setAttribute("pointer-events", "none");
         label.textContent = String(cell.color);
         paintBlobs.appendChild(label);
