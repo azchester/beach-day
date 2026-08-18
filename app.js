@@ -61,6 +61,8 @@
 
   function hideCheer() {
     hide(cheerEl);
+    cheerEl.classList.remove("is-puzzle");
+    if (puzzleScreen) puzzleScreen.classList.remove("is-won");
     hide(playAgainBtn);
     hide(moreGamesBtn);
     if (pathAdvanceTimer) {
@@ -856,12 +858,31 @@
     if (drag && drag.kind === "pan") drag = null;
   });
 
+  function centerCompletedPuzzle() {
+    var box = puzzleCell + puzzleTab * 2;
+    var minX = Infinity;
+    var minY = Infinity;
+    var id;
+    for (id = 0; id < puzzleSession.rows * puzzleSession.cols; id++) {
+      if (puzzlePos[id].x < minX) minX = puzzlePos[id].x;
+      if (puzzlePos[id].y < minY) minY = puzzlePos[id].y;
+    }
+    var width = puzzleSession.cols * puzzleCell + puzzleTab * 2;
+    var height = puzzleSession.rows * puzzleCell + puzzleTab * 2;
+    var stage = puzzleField.parentNode.getBoundingClientRect();
+    var banner = 150;
+    puzzlePan.x = (stage.width - width) / 2 - minX;
+    puzzlePan.y = (stage.height - banner - height) / 2 - minY;
+    puzzleField.style.transform = "translate(" + puzzlePan.x + "px," + puzzlePan.y + "px)";
+  }
+
   function afterPuzzle() {
+    centerCompletedPuzzle();
+    puzzleScreen.classList.add("is-won");
+    cheerEl.classList.add("is-puzzle");
     cheerWords.textContent = "What a puzzle!";
     show(cheerEl);
     celebrateKid();
-    var kid = document.querySelector(".puzzle-kid");
-    if (kid) kid.classList.add("is-cheering");
     show(playAgainBtn);
     show(moreGamesBtn);
   }

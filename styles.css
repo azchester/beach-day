@@ -569,6 +569,26 @@ body {
   justify-content: center;
 }
 
+.cheer.is-puzzle {
+  background: transparent;
+  justify-content: flex-end;
+  padding: 0 1rem 1.1rem;
+  pointer-events: none;
+}
+
+.cheer.is-puzzle .cheer-kid {
+  display: none;
+}
+
+.cheer.is-puzzle .cheer-words,
+.cheer.is-puzzle .cheer-actions {
+  pointer-events: auto;
+}
+
+.puzzle-screen.is-won .puzzle-kid {
+  display: none;
+}
+
 .path-screen {
   position: relative;
   display: grid;
