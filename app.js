@@ -685,10 +685,42 @@
       btn.style.height = box + "px";
       btn.style.left = puzzlePos[id].x + "px";
       btn.style.top = puzzlePos[id].y + "px";
-      btn.style.backgroundImage = "url('" + src + "')";
-      btn.style.backgroundSize = fullW + "px " + fullH + "px";
-      btn.style.backgroundPosition = tab - rc.col * cell + "px " + (tab - rc.row * cell) + "px";
-      btn.style.clipPath = "path('" + jigClip(puzzleSession, id, cell, tab) + "')";
+      var d = jigClip(puzzleSession, id, cell, tab);
+      var clipId = "jigclip-" + id;
+      var imgX = tab - rc.col * cell;
+      var imgY = tab - rc.row * cell;
+      btn.innerHTML =
+        '<svg viewBox="0 0 ' +
+        box +
+        " " +
+        box +
+        '" width="' +
+        box +
+        '" height="' +
+        box +
+        '" overflow="visible" aria-hidden="true">' +
+        '<defs><clipPath id="' +
+        clipId +
+        '"><path d="' +
+        d +
+        '"/></clipPath></defs>' +
+        '<image href="' +
+        src +
+        '" x="' +
+        imgX +
+        '" y="' +
+        imgY +
+        '" width="' +
+        fullW +
+        '" height="' +
+        fullH +
+        '" clip-path="url(#' +
+        clipId +
+        ')" preserveAspectRatio="none"></image>' +
+        '<path d="' +
+        d +
+        '" fill="none" stroke="#111111" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round"></path>' +
+        "</svg>";
       btn.setAttribute("aria-label", "piece");
       puzzleField.appendChild(btn);
       bindJigDrag(btn, id);
