@@ -3,7 +3,6 @@
 
   var session = null;
   var pathSession = null;
-  var stackSession = null;
   var activeGame = null;
   var drag = null;
   var selectedId = null;
@@ -32,19 +31,13 @@
   var hintEl = document.getElementById("round-hint");
   var pathHint = document.getElementById("path-hint");
   var pathBoard = document.getElementById("path-board");
-  var stackScreen = document.getElementById("stack-screen");
-  var stackHint = document.getElementById("stack-hint");
-  var stackPicture = document.getElementById("stack-picture");
-  var stackPad = document.getElementById("stack-pad");
-  var stackTray = document.getElementById("stack-tray");
-  var MENU_GAMES = ["tidy", "stack", "path"];
-  var CRAB_X = { tidy: "-180px", stack: "0px", path: "180px" };
   var cheerEl = document.getElementById("cheer");
   var cheerWords = document.getElementById("cheer-words");
   var playAgainBtn = document.getElementById("play-again");
   var moreGamesBtn = document.getElementById("more-games");
   var exhibits = document.getElementById("exhibits");
   var menuCrab = document.getElementById("menu-crab");
+  var difficultyTitle = document.querySelector("#difficulty-screen h1");
   var pendingGame = "tidy";
 
   function show(el) {
@@ -170,7 +163,6 @@
     activeGame = null;
     hide(playScreen);
     hide(pathScreen);
-    hide(stackScreen);
     hide(difficultyScreen);
     hideCheer();
     show(menuScreen);
@@ -179,7 +171,8 @@
 
   function setMenuPick(game, scuttle) {
     menuPick = game;
-    menuCrab.style.setProperty("--crab-x", CRAB_X[game] || "0px");
+    var shift = game === "path" ? "150px" : "-150px";
+    menuCrab.style.setProperty("--crab-x", shift);
     if (scuttle && !reduceMotion) {
       menuCrab.classList.remove("scuttle");
       void menuCrab.offsetWidth;
@@ -195,18 +188,12 @@
   function openGame(game) {
     hideCheer();
     pendingGame = game;
-    var titles = {
-      path: "Crab Path",
-      stack: "Sandcastle Stack",
-      tidy: "Tide Pool Tidy"
-    };
-    var titleEl = document.querySelector("#difficulty-screen h1");
-    if (titleEl) titleEl.textContent = titles[game] || titles.tidy;
-    difficultyScreen.setAttribute("data-pending", game);
+    if (difficultyTitle) {
+      difficultyTitle.textContent = game === "path" ? "Crab Path" : "Tide Pool Tidy";
+    }
     hide(menuScreen);
     hide(playScreen);
     hide(pathScreen);
-    hide(stackScreen);
     show(difficultyScreen);
   }
 
@@ -237,11 +224,7 @@
     if (menuScreen.hidden) return;
     if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
       event.preventDefault();
-      var at = MENU_GAMES.indexOf(menuPick);
-      if (at < 0) at = 0;
-      if (event.key === "ArrowRight") at = (at + 1) % MENU_GAMES.length;
-      else at = (at + MENU_GAMES.length - 1) % MENU_GAMES.length;
-      setMenuPick(MENU_GAMES[at], true);
+      setMenuPick(menuPick === "tidy" ? "path" : "tidy", true);
       exhibits.querySelector('[data-game="' + menuPick + '"]').focus();
     }
     if (event.key === "Enter" && menuPick) {
@@ -257,7 +240,6 @@
   document.querySelectorAll("[data-difficulty]").forEach(function (btn) {
     btn.addEventListener("click", function () {
       if (pendingGame === "path") startPath(btn.dataset.difficulty);
-      else if (pendingGame === "stack") startStack(btn.dataset.difficulty);
       else startTidy(btn.dataset.difficulty);
     });
   });
@@ -270,9 +252,6 @@
     if (activeGame === "path") {
       pathSession = CrabPath.playAgain(pathSession);
       renderPath();
-    } else if (activeGame === "stack") {
-      stackSession = Sandcastle.playAgain(stackSession);
-      renderStack();
     } else {
       selectedId = null;
       session = TidePool.playAgain(session);
@@ -287,7 +266,6 @@
     hide(menuScreen);
     hide(difficultyScreen);
     hide(pathScreen);
-    hide(stackScreen);
     show(playScreen);
     hideCheer();
     renderTidy();
@@ -466,7 +444,6 @@
     hide(menuScreen);
     hide(difficultyScreen);
     hide(playScreen);
-    hide(stackScreen);
     show(pathScreen);
     hideCheer();
     renderPath();
@@ -562,210 +539,6 @@
       hideCheer();
       renderPath();
     }, 2400);
-  }
-
-  function stackArt(kind, color) {
-    return (
-      '<img class="piece-art" src="assets/sandcastle-' +
-      kind +
-      "-" +
-      color +
-      '.png" alt="" draggable="false" />'
-    );
-  }
-
-  function stackPieceButton(piece) {
-    var btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "piece stack-piece";
-    btn.dataset.id = piece.id;
-    btn.setAttribute("aria-label", piece.color + " " + piece.kind);
-    btn.innerHTML = stackArt(piece.kind, piece.color);
-    return btn;
-  }
-
-  function fortClass(spots) {
-    if (spots.indexOf("left") === -1) return "is-easy";
-    if (spots.indexOf("top") === -1) return "is-medium";
-    return "is-full";
-  }
-
-  function renderFort(el, session, mode) {
-    el.innerHTML = "";
-    var fort = document.createElement("div");
-    fort.className = "stack-fort " + fortClass(session.spots);
-    var open = {};
-    Sandcastle.openSpots(session).forEach(function (id) {
-      open[id] = true;
-    });
-    session.spots.forEach(function (id) {
-      var spot = document.createElement(mode === "pad" ? "button" : "div");
-      if (mode === "pad") spot.type = "button";
-      var filled = session.filled[id];
-      var cls = "spot spot-" + id;
-      if (mode === "picture") {
-        cls += " is-picture";
-      } else if (filled) {
-        cls += " is-filled";
-      } else if (open[id]) {
-        cls += " is-open";
-      } else {
-        cls += " is-locked";
-      }
-      spot.className = cls;
-      spot.dataset.spot = id;
-      if (mode === "picture") {
-        var want = session.target[id];
-        spot.innerHTML = stackArt(want.kind, want.color);
-      } else if (filled) {
-        spot.innerHTML = stackArt(filled.kind, filled.color);
-        spot.setAttribute("aria-label", filled.color + " " + filled.kind);
-      } else {
-        spot.setAttribute("aria-label", open[id] ? "open " + id : "locked " + id);
-      }
-      fort.appendChild(spot);
-    });
-    el.appendChild(fort);
-  }
-
-  function startStack(difficulty) {
-    activeGame = "stack";
-    selectedId = null;
-    stackSession = Sandcastle.createSession({ difficulty: difficulty });
-    hide(menuScreen);
-    hide(difficultyScreen);
-    hide(playScreen);
-    hide(pathScreen);
-    show(stackScreen);
-    hideCheer();
-    renderStack();
-  }
-
-  function renderStack() {
-    stackHint.textContent =
-      "Castle " + (stackSession.roundIndex + 1) + " of " + Sandcastle.ROUND_COUNT + ".";
-    renderFort(stackPicture, stackSession, "picture");
-    renderFort(stackPad, stackSession, "pad");
-    stackTray.innerHTML = "";
-    stackSession.tray.forEach(function (piece) {
-      var btn = stackPieceButton(piece);
-      if (piece.id === selectedId) btn.classList.add("selected");
-      stackTray.appendChild(btn);
-      bindStackDrag(btn, piece);
-    });
-  }
-
-  function spotFromPoint(x, y) {
-    var stack = document.elementsFromPoint(x, y);
-    for (var i = 0; i < stack.length; i++) {
-      var node = stack[i].closest ? stack[i].closest("[data-spot]") : null;
-      if (node && stackPad.contains(node)) return node;
-    }
-    return null;
-  }
-
-  function bindStackDrag(btn, piece) {
-    btn.addEventListener("pointerdown", function (event) {
-      if (event.button !== undefined && event.button !== 0) return;
-      event.preventDefault();
-      var rect = btn.getBoundingClientRect();
-      drag = {
-        id: piece.id,
-        btn: btn,
-        dx: event.clientX - rect.left,
-        dy: event.clientY - rect.top,
-        startX: event.clientX,
-        startY: event.clientY,
-        moved: false,
-        kind: "stack"
-      };
-      try {
-        btn.setPointerCapture(event.pointerId);
-      } catch (err) {}
-    });
-
-    btn.addEventListener("pointermove", function (event) {
-      if (!drag || drag.btn !== btn) return;
-      var dist = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY);
-      if (!drag.moved && dist < 10) return;
-      if (!drag.moved) {
-        drag.moved = true;
-        liftPiece(btn, event);
-        return;
-      }
-      btn.style.left = event.clientX - drag.dx + "px";
-      btn.style.top = event.clientY - drag.dy + "px";
-    });
-
-    btn.addEventListener("pointerup", finishStackPointer);
-    btn.addEventListener("pointercancel", finishStackPointer);
-  }
-
-  function tryPlaceStack(pieceId, spotEl) {
-    if (!spotEl) return false;
-    var result = Sandcastle.place(stackSession, pieceId, spotEl.dataset.spot);
-    stackSession = result.session;
-    selectedId = result.ok ? null : pieceId;
-    renderStack();
-    var fresh = stackPad.querySelector('[data-spot="' + spotEl.dataset.spot + '"]');
-    pulse(fresh, result.ok ? "splash" : "wiggle");
-    if (!result.ok) {
-      var pieceBtn = stackTray.querySelector('[data-id="' + pieceId + '"]');
-      pulse(pieceBtn, "wiggle");
-    }
-    if (result.ok && stackSession.complete) afterStack();
-    return true;
-  }
-
-  function finishStackPointer(event) {
-    if (!drag || drag.kind !== "stack") return;
-    var btn = drag.btn;
-    var id = drag.id;
-    var moved = drag.moved;
-    var spotEl = spotFromPoint(event.clientX, event.clientY);
-    drag = null;
-    btn.classList.remove("dragging");
-    btn.style.left = "";
-    btn.style.top = "";
-    btn.style.width = "";
-    btn.style.height = "";
-
-    if (!moved) {
-      selectedId = selectedId === id ? null : id;
-      renderStack();
-      return;
-    }
-
-    if (!tryPlaceStack(id, spotEl)) renderStack();
-  }
-
-  stackPad.addEventListener("click", function (event) {
-    if (!selectedId || !stackSession) return;
-    var spotEl = event.target.closest ? event.target.closest("[data-spot]") : null;
-    tryPlaceStack(selectedId, spotEl);
-  });
-
-  function afterStack() {
-    selectedId = null;
-    cheerWords.textContent = "What a castle!";
-    show(cheerEl);
-    celebrateKid();
-    var stackKid = document.querySelector(".stack-kid");
-    if (stackKid) stackKid.classList.add("is-cheering");
-    if (stackSession.roundIndex >= Sandcastle.ROUND_COUNT - 1) {
-      stackSession = Sandcastle.advance(stackSession);
-      show(playAgainBtn);
-      show(moreGamesBtn);
-      return;
-    }
-    hide(playAgainBtn);
-    hide(moreGamesBtn);
-    var wait = reduceMotion ? 0 : 2000;
-    cheerTimer = window.setTimeout(function () {
-      stackSession = Sandcastle.advance(stackSession);
-      hideCheer();
-      renderStack();
-    }, wait);
   }
 
   paintKids();

@@ -33,15 +33,6 @@
             <span class="exhibit-name">Tide Pool Tidy</span>
             <span class="exhibit-blurb">Sort the beach</span>
           </button>
-          <button type="button" class="exhibit" data-game="stack" role="option" aria-selected="false">
-            <div class="exhibit-art stack-art" aria-hidden="true">
-              <img src="assets/sandcastle-bucket-sand.png" alt="" />
-              <img src="assets/sandcastle-turret-sand.png" alt="" />
-              <img src="assets/sandcastle-drip-sand.png" alt="" />
-            </div>
-            <span class="exhibit-name">Sandcastle Stack</span>
-            <span class="exhibit-blurb">Copy the castle</span>
-          </button>
           <button type="button" class="exhibit" data-game="path" role="option" aria-selected="false">
             <div class="exhibit-art path-art" aria-hidden="true">
               <img src="assets/crab.png" alt="" />
@@ -95,20 +86,6 @@
         </div>
       </section>
 
-      <section id="stack-screen" class="screen path-screen stack-screen hidden" hidden>
-        <div class="sky">
-          <button type="button" class="back-btn" data-back>Games</button>
-          <img class="sun small" src="assets/sun.png" alt="" aria-hidden="true" />
-          <p class="hint" id="stack-hint"></p>
-        </div>
-        <div class="stack-stage">
-          <div id="stack-picture" class="stack-picture" aria-label="castle to copy"></div>
-          <div id="stack-pad" class="stack-pad" aria-label="build the castle"></div>
-          <div id="stack-tray" class="stack-tray" aria-label="castle pieces"></div>
-          <div class="path-kid stack-kid" data-kid aria-hidden="true"></div>
-        </div>
-      </section>
-
       <div id="cheer" class="cheer hidden" hidden>
         <div class="cheer-kid" data-kid aria-hidden="true"></div>
         <p class="cheer-words" id="cheer-words">All tidy!</p>
@@ -120,7 +97,6 @@
     </main>
     <script src="game.js"></script>
     <script src="path.js"></script>
-    <script src="stack.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

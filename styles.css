@@ -157,13 +157,13 @@ body {
   gap: 1.2rem;
   justify-content: center;
   flex-wrap: wrap;
-  width: min(1100px, 100%);
+  width: min(920px, 100%);
 }
 
 .exhibit {
   appearance: none;
-  flex: 1 1 220px;
-  max-width: 320px;
+  flex: 1 1 260px;
+  max-width: 340px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -224,29 +224,11 @@ body {
 }
 
 .tidy-art img,
-.stack-art img,
 .path-art img {
   width: 74px;
   height: 74px;
   object-fit: contain;
   pointer-events: none;
-}
-
-.stack-art {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 0.15rem;
-}
-
-.stack-art img:nth-child(1) {
-  width: 64px;
-  height: 64px;
-}
-
-.stack-art img:nth-child(3) {
-  width: 62px;
-  height: 62px;
 }
 
 .path-art {
@@ -605,134 +587,6 @@ body {
   animation: celebrate-pop 0.7s ease;
 }
 
-.stack-stage {
-  display: grid;
-  grid-template-columns: minmax(7rem, 1fr) auto minmax(7rem, 1fr);
-  grid-template-rows: auto 1fr;
-  align-items: center;
-  gap: 0.7rem 1.4rem;
-  padding: 0.7rem 1rem 1rem;
-}
-
-.stack-picture {
-  grid-column: 1;
-  grid-row: 1;
-  justify-self: end;
-  align-self: center;
-  padding: 0.45rem 0.55rem;
-  background: var(--foam);
-  border: 5px solid var(--ink);
-  border-radius: 1.2rem;
-  box-shadow: 4px 5px 0 var(--ink);
-}
-
-.stack-pad {
-  grid-column: 2;
-  grid-row: 1;
-}
-
-.stack-kid {
-  grid-column: 3;
-  grid-row: 1;
-}
-
-.stack-tray {
-  grid-column: 1 / span 3;
-  grid-row: 2;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: flex-end;
-  gap: 0.35rem;
-  min-height: 7rem;
-}
-
-.stack-fort {
-  display: grid;
-  gap: 0.45rem;
-  justify-items: center;
-  align-items: end;
-}
-
-.stack-fort.is-easy {
-  grid-template-columns: auto;
-  grid-template-areas:
-    "top"
-    "base";
-}
-
-.stack-fort.is-medium {
-  grid-template-columns: auto auto auto;
-  grid-template-areas: "left base right";
-}
-
-.stack-fort.is-full {
-  grid-template-columns: auto auto auto;
-  grid-template-areas:
-    ". top ."
-    "left base right";
-}
-
-.spot-top { grid-area: top; }
-.spot-left { grid-area: left; }
-.spot-base { grid-area: base; }
-.spot-right { grid-area: right; }
-
-.spot {
-  appearance: none;
-  width: min(22vw, 118px);
-  height: min(22vw, 118px);
-  padding: 0.2rem;
-  border: 5px solid var(--ink);
-  border-radius: 1.1rem;
-  background: url("assets/tile-sand.png") center / cover no-repeat;
-  box-shadow: 3px 4px 0 var(--shadow);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.spot.is-open {
-  cursor: pointer;
-}
-
-.spot.is-locked {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.spot.is-filled {
-  cursor: default;
-}
-
-.spot.is-picture {
-  width: min(16vw, 72px);
-  height: min(16vw, 72px);
-  border-width: 4px;
-  pointer-events: none;
-}
-
-.spot .piece-art {
-  width: 92%;
-  height: 92%;
-  object-fit: contain;
-  pointer-events: none;
-  filter: drop-shadow(2px 3px 0 var(--shadow));
-}
-
-.stack-tray .piece {
-  width: min(22vw, 110px);
-  height: min(22vw, 110px);
-}
-
-.spot.wiggle {
-  animation: wiggle 0.4s ease;
-}
-
-.spot.splash {
-  animation: splash 0.45s ease;
-}
-
 .path-row {
   display: flex;
   gap: 0.55rem;
@@ -902,59 +756,9 @@ body {
   }
 
   .tidy-art img,
-  .stack-art img,
   .path-art img {
     width: 58px;
     height: 58px;
-  }
-
-  .stack-stage {
-    grid-template-columns: auto 1fr;
-    grid-template-rows: auto auto auto;
-    padding: 0.4rem 0.5rem 0.8rem;
-    gap: 0.55rem 0.7rem;
-  }
-
-  .stack-picture {
-    grid-column: 1;
-    grid-row: 1;
-    justify-self: start;
-  }
-
-  .stack-kid {
-    grid-column: 2;
-    grid-row: 1;
-    width: 5.2rem;
-    margin-left: 0;
-    justify-self: end;
-  }
-
-  .stack-pad {
-    grid-column: 1 / span 2;
-    grid-row: 2;
-    justify-self: center;
-  }
-
-  .stack-tray {
-    grid-column: 1 / span 2;
-    grid-row: 3;
-    min-height: 5.4rem;
-  }
-
-  .spot {
-    width: min(26vw, 86px);
-    height: min(26vw, 86px);
-    border-width: 4px;
-  }
-
-  .spot.is-picture {
-    width: min(16vw, 48px);
-    height: min(16vw, 48px);
-  }
-
-  .stack-tray .piece {
-    width: min(24vw, 86px);
-    height: min(24vw, 86px);
   }
 
   .menu-screen .sun {
@@ -978,9 +782,6 @@ body {
   .tile.legal,
   .tile.wiggle,
   .tile.splash,
-  .spot.wiggle,
-  .spot.splash,
-  .stack-piece.wiggle,
   .exhibit.hop,
   .menu-crab,
   .menu-crab.scuttle img,
