@@ -1029,6 +1029,10 @@ body {
   box-shadow: 0 0 0 4px var(--sunflower), 3px 3px 0 var(--ink);
 }
 
+.crayon-screen .sun.small {
+  right: 5.6rem;
+}
+
 .done-btn {
   appearance: none;
   position: absolute;

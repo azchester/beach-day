@@ -53,6 +53,16 @@
   var paintLabels = document.getElementById("paint-labels");
   var paintPots = document.getElementById("paint-pots");
   var paintSession = null;
+  var crayonScreen = document.getElementById("crayon-screen");
+  var crayonBlobs = document.getElementById("crayon-blobs");
+  var crayonCanvas = document.getElementById("crayon-canvas");
+  var crayonPots = document.getElementById("crayon-pots");
+  var crayonDone = document.getElementById("crayon-done");
+  var crayonPage = document.getElementById("crayon-page");
+  var crayonSession = null;
+  var crayonCtx = null;
+  var crayonDrawing = false;
+  var crayonLast = null;
   var puzzleSession = null;
   var puzzlePos = {};
   var puzzleCell = 72;
@@ -82,6 +92,7 @@
     cheerEl.classList.remove("is-paint");
     if (puzzleScreen) puzzleScreen.classList.remove("is-won");
     if (paintScreen) paintScreen.classList.remove("is-won");
+    if (crayonScreen) crayonScreen.classList.remove("is-won");
     hide(playAgainBtn);
     hide(moreGamesBtn);
     if (pathAdvanceTimer) {
@@ -174,6 +185,7 @@
     if (pathScreen && !pathScreen.hidden) return pathScreen.querySelector(".path-kid");
     if (puzzleScreen && !puzzleScreen.hidden) return puzzleScreen.querySelector(".puzzle-kid");
     if (paintScreen && !paintScreen.hidden) return paintScreen.querySelector(".paint-kid");
+    if (crayonScreen && !crayonScreen.hidden) return crayonScreen.querySelector(".crayon-kid");
     return null;
   }
 
@@ -360,6 +372,7 @@
     hide(pathScreen);
     hide(puzzleScreen);
     hide(paintScreen);
+    hide(crayonScreen);
     hide(difficultyScreen);
     closePuzzlePeek();
     hideCheer();
@@ -399,6 +412,10 @@
       startPaint();
       return;
     }
+    if (game === "crayon") {
+      startCrayon();
+      return;
+    }
     if (difficultyTitle) {
       difficultyTitle.textContent =
         game === "path" ? "Crab Path" : game === "puzzle" ? "Beach Puzzle" : "Tide Pool Tidy";
@@ -408,6 +425,7 @@
     hide(pathScreen);
     hide(puzzleScreen);
     hide(paintScreen);
+    hide(crayonScreen);
     show(difficultyScreen);
   }
 
@@ -478,6 +496,16 @@
     } else if (activeGame === "paint") {
       paintSession = Paint.playAgain(paintSession);
       renderPaint();
+    } else if (activeGame === "crayon") {
+      crayonSession = Crayon.playAgain(crayonSession);
+      if (crayonCtx && crayonCanvas) {
+        crayonCtx.clearRect(0, 0, crayonCanvas.width, crayonCanvas.height);
+      }
+      renderCrayonPage();
+      window.requestAnimationFrame(function () {
+        renderCrayonPage();
+        clearCrayonCanvas();
+      });
     } else {
       selectedId = null;
       session = TidePool.playAgain(session);
@@ -494,6 +522,7 @@
     hide(pathScreen);
     hide(puzzleScreen);
     hide(paintScreen);
+    hide(crayonScreen);
     show(playScreen);
     hideCheer();
     renderTidy();
@@ -680,6 +709,7 @@
     hide(playScreen);
     hide(puzzleScreen);
     hide(paintScreen);
+    hide(crayonScreen);
     show(pathScreen);
     hideCheer();
     renderPath();
@@ -856,6 +886,7 @@
     hide(playScreen);
     hide(pathScreen);
     hide(paintScreen);
+    hide(crayonScreen);
     show(puzzleScreen);
     hideCheer();
     window.requestAnimationFrame(function () {
@@ -1161,6 +1192,7 @@
     hide(playScreen);
     hide(pathScreen);
     hide(puzzleScreen);
+    hide(crayonScreen);
     show(paintScreen);
     hideCheer();
     paintSession = Paint.createSession();
@@ -1287,6 +1319,189 @@
     show(moreGamesBtn);
   }
 
+  function sizeCrayonCanvas() {
+    if (!crayonCanvas || !crayonPage) return;
+    var dpr = window.devicePixelRatio || 1;
+    var w = crayonPage.clientWidth;
+    var h = crayonPage.clientHeight;
+    if (w < 1 || h < 1) return;
+    var prev = document.createElement("canvas");
+    prev.width = crayonCanvas.width;
+    prev.height = crayonCanvas.height;
+    if (prev.width && prev.height) {
+      prev.getContext("2d").drawImage(crayonCanvas, 0, 0);
+    }
+    crayonCanvas.width = Math.max(1, Math.floor(w * dpr));
+    crayonCanvas.height = Math.max(1, Math.floor(h * dpr));
+    crayonCtx = crayonCanvas.getContext("2d");
+    crayonCtx.lineCap = "round";
+    crayonCtx.lineJoin = "round";
+    crayonCtx.lineWidth = 0.06 * w * dpr;
+    if (prev.width && prev.height) {
+      crayonCtx.drawImage(prev, 0, 0, crayonCanvas.width, crayonCanvas.height);
+    }
+  }
+
+  function clearCrayonCanvas() {
+    if (!crayonCanvas) return;
+    crayonCanvas.width = 0;
+    crayonCanvas.height = 0;
+    sizeCrayonCanvas();
+  }
+
+  function crayonPoint(event) {
+    var rect = crayonCanvas.getBoundingClientRect();
+    var x = ((event.clientX - rect.left) / rect.width) * crayonCanvas.width;
+    var y = ((event.clientY - rect.top) / rect.height) * crayonCanvas.height;
+    return { x: x, y: y };
+  }
+
+  function crayonStrokeStyle() {
+    if (!crayonSession) return "#ffe14a";
+    var name = Paint.colorName(crayonSession.pictureIndex, crayonSession.selectedColor);
+    return Paint.hex(name);
+  }
+
+  function renderCrayonPage() {
+    if (!crayonBlobs || !crayonPots || !crayonSession) return;
+    var layout = Paint.layout(crayonSession.pictureIndex);
+    crayonBlobs.innerHTML = "";
+    layout.forEach(function (cell) {
+      var pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      pathEl.setAttribute("d", cell.d);
+      pathEl.setAttribute("fill", "#ffffff");
+      pathEl.setAttribute("stroke", "#2a2438");
+      pathEl.setAttribute("stroke-width", "1.1");
+      pathEl.setAttribute("stroke-linejoin", "round");
+      pathEl.setAttribute("stroke-linecap", "round");
+      crayonBlobs.appendChild(pathEl);
+    });
+    var ink = window.PAINT_INK && window.PAINT_INK[Crayon.pictureId(crayonSession)];
+    if (Array.isArray(ink)) {
+      ink.forEach(function (d) {
+        var inkEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        inkEl.setAttribute("class", "paint-ink");
+        inkEl.setAttribute("d", d);
+        inkEl.setAttribute("fill", "none");
+        inkEl.setAttribute("stroke", "#2a2438");
+        inkEl.setAttribute("stroke-width", "1.1");
+        inkEl.setAttribute("pointer-events", "none");
+        crayonBlobs.appendChild(inkEl);
+      });
+    }
+    var pots = Paint.palette(crayonSession.pictureIndex);
+    var used = {};
+    layout.forEach(function (cell) {
+      used[cell.color] = true;
+    });
+    crayonPots.innerHTML = "";
+    pots.forEach(function (name, i) {
+      var n = i + 1;
+      if (!used[n]) return;
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "paint-pot crayon-pot";
+      if (crayonSession.selectedColor === n) btn.classList.add("is-on");
+      btn.style.background = Paint.hex(name);
+      btn.dataset.color = String(n);
+      btn.setAttribute("aria-label", name);
+      crayonPots.appendChild(btn);
+    });
+    sizeCrayonCanvas();
+  }
+
+  function startCrayon() {
+    activeGame = "crayon";
+    hide(menuScreen);
+    hide(difficultyScreen);
+    hide(playScreen);
+    hide(pathScreen);
+    hide(puzzleScreen);
+    hide(paintScreen);
+    show(crayonScreen);
+    hideCheer();
+    crayonSession = Crayon.createSession();
+    renderCrayonPage();
+    window.requestAnimationFrame(function () {
+      renderCrayonPage();
+      clearCrayonCanvas();
+    });
+  }
+
+  function afterCrayon() {
+    crayonScreen.classList.add("is-won");
+    cheerEl.classList.add("is-paint");
+    cheerWords.textContent = "What a picture!";
+    show(cheerEl);
+    celebrateKid();
+    show(playAgainBtn);
+    show(moreGamesBtn);
+  }
+
+  function crayonStartDraw(event) {
+    if (!crayonSession || crayonSession.complete || !crayonCtx) return;
+    event.preventDefault();
+    crayonDrawing = true;
+    if (crayonCanvas.setPointerCapture && event.pointerId != null) {
+      try {
+        crayonCanvas.setPointerCapture(event.pointerId);
+      } catch (err) {}
+    }
+    crayonLast = crayonPoint(event);
+    crayonCtx.strokeStyle = crayonStrokeStyle();
+    crayonCtx.beginPath();
+    crayonCtx.moveTo(crayonLast.x, crayonLast.y);
+    crayonCtx.lineTo(crayonLast.x, crayonLast.y);
+    crayonCtx.stroke();
+  }
+
+  function crayonMoveDraw(event) {
+    if (!crayonDrawing || !crayonCtx || !crayonSession || crayonSession.complete) return;
+    event.preventDefault();
+    var pt = crayonPoint(event);
+    crayonCtx.strokeStyle = crayonStrokeStyle();
+    crayonCtx.beginPath();
+    crayonCtx.moveTo(crayonLast.x, crayonLast.y);
+    crayonCtx.lineTo(pt.x, pt.y);
+    crayonCtx.stroke();
+    crayonLast = pt;
+  }
+
+  function crayonEndDraw(event) {
+    if (!crayonDrawing) return;
+    if (event) event.preventDefault();
+    crayonDrawing = false;
+    crayonLast = null;
+  }
+
+  if (crayonPots) {
+    crayonPots.addEventListener("click", function (event) {
+      var btn = event.target.closest ? event.target.closest("[data-color]") : null;
+      if (!btn || !crayonSession || crayonSession.complete) return;
+      var result = Crayon.selectColor(crayonSession, Number(btn.dataset.color));
+      if (!result.ok) return;
+      crayonSession = result.session;
+      [].forEach.call(crayonPots.querySelectorAll(".paint-pot"), function (el) {
+        el.classList.toggle("is-on", el.dataset.color === String(crayonSession.selectedColor));
+      });
+    });
+  }
+
+  if (crayonDone) {
+    crayonDone.addEventListener("click", function () {
+      if (!crayonSession || crayonSession.complete) return;
+      crayonSession = Crayon.done(crayonSession).session;
+      afterCrayon();
+    });
+  }
+
+  if (crayonCanvas) {
+    crayonCanvas.addEventListener("pointerdown", crayonStartDraw);
+    crayonCanvas.addEventListener("pointermove", crayonMoveDraw);
+    crayonCanvas.addEventListener("pointerup", crayonEndDraw);
+    crayonCanvas.addEventListener("pointercancel", crayonEndDraw);
+  }
+
   if (puzzleTidy) puzzleTidy.addEventListener("click", tidyPuzzle);
   if (puzzlePreview) puzzlePreview.addEventListener("click", openPuzzlePeek);
   if (puzzlePeekClose) puzzlePeekClose.addEventListener("click", closePuzzlePeek);
@@ -1294,6 +1509,7 @@
 
   window.addEventListener("resize", function () {
     if (menuScreen && !menuScreen.hidden) placeMenuCrab(menuPick);
+    if (crayonScreen && !crayonScreen.hidden) sizeCrayonCanvas();
   });
 
   paintKids();
