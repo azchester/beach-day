@@ -1,6 +1,6 @@
 # Beach Day
 
-Four quiet beach games for a grown-up and an almost-four-year-old.
+Five quiet beach games for a grown-up and an almost-four-year-old.
 
 ## Play
 
@@ -35,11 +35,16 @@ Help the crab hop to the bucket. Only the glowing squares next door are safe. Ro
 
 Tap Paint by Number and a beach picture is waiting. Tap a numbered pot, then tap every blob with that number — sky, water, and sand too. Wrong number? It wiggles and stays empty. No Easy / Medium / Hard, no timer, no score.
 
+### Crayon
+
+Tap Crayon and a beach picture is waiting, with no numbers. Tap a color pot (the first one is already picked), then drag to crayon over the picture — ink, sky, and all. Tap **Done** when you are finished. No Easy / Medium / Hard, no timer, no score.
+
 Tap **Games** any time to come back to the menu.
 
 ## Tests
 
 ```bash
+node test/crayon.test.js
 node test/paint.test.js
 node test/game.test.js
 node test/path.test.js
