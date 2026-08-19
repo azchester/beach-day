@@ -85,6 +85,20 @@
             <span class="exhibit-name">Paint by Number</span>
             <span class="exhibit-blurb">Color the picture</span>
           </button>
+          <button type="button" class="exhibit" data-game="crayon" role="option" aria-selected="false">
+            <div class="exhibit-art paint-art" aria-hidden="true">
+              <div class="paint-thumb">
+                <img src="assets/paint/crayon-preview.svg" alt="" />
+              </div>
+              <div class="paint-thumb-pots">
+                <span class="paint-thumb-pot" style="background:#ffe14a"></span>
+                <span class="paint-thumb-pot" style="background:#f4a03c"></span>
+                <span class="paint-thumb-pot" style="background:#4eb0ea"></span>
+              </div>
+            </div>
+            <span class="exhibit-name">Crayon</span>
+            <span class="exhibit-blurb">Color your way</span>
+          </button>
         </div>
         <div class="menu-crab" id="menu-crab" aria-hidden="true">
           <img src="assets/crab.png" alt="" />
@@ -221,6 +235,27 @@
         <div id="paint-pots" class="paint-pots" aria-label="paints"></div>
       </section>
 
+      <section id="crayon-screen" class="screen path-screen paint-screen crayon-screen hidden" hidden>
+        <div class="sky">
+          <button type="button" class="back-btn" data-back>
+            <span class="btn-icon" aria-hidden="true">
+              <img src="assets/icon-house.png" alt="" />
+            </span>
+            Games
+          </button>
+          <img class="sun small" src="assets/sun.png" alt="" aria-hidden="true" />
+          <button type="button" class="done-btn" id="crayon-done">Done</button>
+        </div>
+        <div class="paint-stage">
+          <div class="paint-page crayon-page" id="crayon-page">
+            <svg id="crayon-blobs" class="paint-blobs crayon-blobs" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-label="coloring page"></svg>
+            <canvas id="crayon-canvas" class="crayon-canvas" aria-label="crayon"></canvas>
+          </div>
+          <div class="path-kid paint-kid crayon-kid" data-kid aria-hidden="true"></div>
+        </div>
+        <div id="crayon-pots" class="paint-pots" aria-label="paints"></div>
+      </section>
+
       <div id="cheer" class="cheer hidden" hidden>
         <div class="cheer-kid" data-kid aria-hidden="true"></div>
         <p class="cheer-words" id="cheer-words">All tidy!</p>
@@ -247,6 +282,7 @@
     <script src="menu.js"></script>
     <script src="paint-layouts.js"></script>
     <script src="paint.js"></script>
+    <script src="crayon.js"></script>
     <script src="kid.js"></script>
     <script src="app.js"></script>
   </body>

@@ -183,7 +183,7 @@ body {
   display: flex;
   gap: 1.2rem;
   justify-content: center;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   width: min(1100px, 100%);
 }
 
@@ -1027,6 +1027,58 @@ body {
 
 .paint-pot.is-on {
   box-shadow: 0 0 0 4px var(--sunflower), 3px 3px 0 var(--ink);
+}
+
+.done-btn {
+  appearance: none;
+  position: absolute;
+  right: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 4px solid var(--ink);
+  background: var(--sunflower);
+  color: var(--ink);
+  font-family: Fredoka, "Trebuchet MS", sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.28rem 0.75rem 0.38rem;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--ink);
+  z-index: 2;
+}
+
+.done-btn:focus-visible {
+  outline: 3px solid var(--coral);
+  outline-offset: 3px;
+}
+
+.crayon-blobs {
+  pointer-events: none;
+  z-index: 1;
+}
+
+.crayon-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.paint-pot.crayon-pot {
+  font-size: 0;
+  color: transparent;
+}
+
+.crayon-screen.is-won .crayon-kid {
+  display: none;
+}
+
+.crayon-screen.is-won .done-btn {
+  visibility: hidden;
 }
 
 .cheer.is-paint {

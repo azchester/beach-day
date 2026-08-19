@@ -70,6 +70,19 @@ test("gameIds picks up a fourth card without a hardcoded list", function () {
   );
 });
 
+test("gameIds picks up a fifth card without a hardcoded list", function () {
+  assert.deepStrictEqual(
+    BeachMenu.gameIds([
+      card("tidy"),
+      card("puzzle"),
+      card("path"),
+      card("paint"),
+      card("crayon")
+    ]),
+    ["tidy", "puzzle", "path", "paint", "crayon"]
+  );
+});
+
 test("gameIds skips cards with no data-game", function () {
   assert.deepStrictEqual(BeachMenu.gameIds([card("tidy"), card(""), card("path")]), ["tidy", "path"]);
   assert.deepStrictEqual(BeachMenu.gameIds(null), []);
