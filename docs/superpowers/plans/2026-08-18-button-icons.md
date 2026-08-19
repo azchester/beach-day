@@ -40,7 +40,7 @@
 - Consumes: style of `assets/shell-scallop-peach.png` (thick `#2a2438` outline, flat fills).
 - Produces: two square transparent PNGs that `index.html` will load at those exact paths.
 
-- [ ] **Step 1: Generate `assets/icon-house.png`**
+- [x] **Step 1: Generate `assets/icon-house.png`**
 
 Use Imagine `image_gen` (or `image_edit` with the scallop as the style reference) at 1:1.
 
@@ -48,13 +48,13 @@ Prompt must lock: children’s game UI icon, single house only, no text, no back
 
 Save the result as `assets/icon-house.png`.
 
-- [ ] **Step 2: Generate `assets/icon-replay.png`**
+- [x] **Step 2: Generate `assets/icon-replay.png`**
 
 Same style lock. Prompt must lock: children’s game UI icon, circular replay arrow only, no text, no background. Thick dark ink outline `#2a2438`. Arrow body sunflower `#ffe14a` with a small coral `#e24b3c` center dot. Flat painted fills like the scallop. Centered, large in the frame, readable at 24px.
 
 Save the result as `assets/icon-replay.png`.
 
-- [ ] **Step 3: Open both PNGs and check**
+- [x] **Step 3: Open both PNGs and check**
 
 Expected:
 - Transparent (or easily isolatable) background, not a beach scene.
@@ -62,7 +62,7 @@ Expected:
 - House reads as a house at ~24px. Replay reads as “again” at ~24px.
 - If either fails, regenerate that one only.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add assets/icon-house.png assets/icon-replay.png
@@ -81,7 +81,7 @@ git commit -m "Add painted house and replay button icons."
 - Consumes: `assets/icon-house.png`, `assets/icon-replay.png`, `assets/shell-scallop-peach.png`
 - Produces: no new JS API. Existing `data-back`, `data-difficulty`, `#play-again`, `#more-games` selectors keep working.
 
-- [ ] **Step 1: Markup `index.html`**
+- [x] **Step 1: Markup `index.html`**
 
 Replace the four Games buttons with this pattern (keep each button’s existing classes: `back-btn`, plus `difficulty-back` on the difficulty screen):
 
@@ -139,7 +139,7 @@ Cheer buttons:
 
 Do not change exhibit cards or any other markup.
 
-- [ ] **Step 2: CSS in `styles.css`**
+- [x] **Step 2: CSS in `styles.css`**
 
 Add `display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;` to `.btn`.
 
@@ -171,7 +171,7 @@ Add:
 
 `.difficulty-row` already wraps. Do not let `.btn-icon` wrap.
 
-- [ ] **Step 3: Keep existing tests green**
+- [x] **Step 3: Keep existing tests green**
 
 Run:
 
@@ -183,7 +183,7 @@ node test/puzzle.test.js
 
 Expected: all PASS. No new tests.
 
-- [ ] **Step 4: Browser check**
+- [x] **Step 4: Browser check**
 
 Open `index.html`. Confirm:
 
@@ -194,7 +194,7 @@ Open `index.html`. Confirm:
 5. Narrow viewport (~390px): difficulty buttons wrap; Hard still shows three shells on one pill.
 6. Icons look like Beach Day paint, sit left of the words, and stay crisp.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add index.html styles.css

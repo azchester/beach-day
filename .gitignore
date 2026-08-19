@@ -4,3 +4,4 @@
 *.log
 .vercel
 .worktrees/
+.superpowers/
