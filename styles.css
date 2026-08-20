@@ -1062,6 +1062,11 @@ body {
   z-index: 1;
 }
 
+.paint-blobs.crayon-blobs path {
+  stroke: none;
+  cursor: default;
+}
+
 .crayon-canvas {
   position: absolute;
   inset: 0;
@@ -1070,6 +1075,16 @@ body {
   height: 100%;
   touch-action: none;
   cursor: crosshair;
+}
+
+.crayon-lines {
+  pointer-events: none;
+  z-index: 3;
+}
+
+.paint-blobs.crayon-lines path {
+  fill: none;
+  cursor: default;
 }
 
 .paint-pot.crayon-pot {

@@ -37,7 +37,7 @@ Tap Paint by Number and a beach picture is waiting. Tap a numbered pot, then tap
 
 ### Crayon
 
-Tap Crayon and a beach picture is waiting, with no numbers. Tap a color pot (the first one is already picked), then drag to crayon over the picture — ink, sky, and all. Tap **Done** when you are finished. No Easy / Medium / Hard, no timer, no score.
+Tap Crayon and a beach picture is waiting, with no numbers. Tap a color pot (the first one is already picked), then drag to crayon the picture. The outlines stay on top of the marks. Tap **Done** when you are finished. No Easy / Medium / Hard, no timer, no score.
 
 Tap **Games** any time to come back to the menu.
 

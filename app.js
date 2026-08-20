@@ -55,6 +55,7 @@
   var paintSession = null;
   var crayonScreen = document.getElementById("crayon-screen");
   var crayonBlobs = document.getElementById("crayon-blobs");
+  var crayonLines = document.getElementById("crayon-lines");
   var crayonCanvas = document.getElementById("crayon-canvas");
   var crayonPots = document.getElementById("crayon-pots");
   var crayonDone = document.getElementById("crayon-done");
@@ -1366,18 +1367,23 @@
     if (!crayonBlobs || !crayonPots || !crayonSession) return;
     var layout = Paint.layout(crayonSession.pictureIndex);
     crayonBlobs.innerHTML = "";
+    if (crayonLines) crayonLines.innerHTML = "";
     layout.forEach(function (cell) {
-      var pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      pathEl.setAttribute("d", cell.d);
-      pathEl.setAttribute("fill", "#ffffff");
-      pathEl.setAttribute("stroke", "#2a2438");
-      pathEl.setAttribute("stroke-width", "1.1");
-      pathEl.setAttribute("stroke-linejoin", "round");
-      pathEl.setAttribute("stroke-linecap", "round");
-      crayonBlobs.appendChild(pathEl);
+      var fillEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      fillEl.setAttribute("d", cell.d);
+      fillEl.setAttribute("fill", "#ffffff");
+      crayonBlobs.appendChild(fillEl);
+      var lineEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      lineEl.setAttribute("d", cell.d);
+      lineEl.setAttribute("fill", "none");
+      lineEl.setAttribute("stroke", "#2a2438");
+      lineEl.setAttribute("stroke-width", "1.1");
+      lineEl.setAttribute("stroke-linejoin", "round");
+      lineEl.setAttribute("stroke-linecap", "round");
+      if (crayonLines) crayonLines.appendChild(lineEl);
     });
     var ink = window.PAINT_INK && window.PAINT_INK[Crayon.pictureId(crayonSession)];
-    if (Array.isArray(ink)) {
+    if (Array.isArray(ink) && crayonLines) {
       ink.forEach(function (d) {
         var inkEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
         inkEl.setAttribute("class", "paint-ink");
@@ -1386,7 +1392,7 @@
         inkEl.setAttribute("stroke", "#2a2438");
         inkEl.setAttribute("stroke-width", "1.1");
         inkEl.setAttribute("pointer-events", "none");
-        crayonBlobs.appendChild(inkEl);
+        crayonLines.appendChild(inkEl);
       });
     }
     var pots = Paint.palette(crayonSession.pictureIndex);

@@ -4,6 +4,7 @@
  */
 "use strict";
 
+var fs = require("fs");
 var path = require("path");
 var assert = require("assert");
 var Paint = require(path.join(__dirname, "..", "paint.js"));
@@ -113,6 +114,41 @@ test("two createSession stubs can differ in pictureIndex", function () {
   var a = Crayon.createSession({ random: always(0) });
   var b = Crayon.createSession({ random: always(0.99) });
   assert.notStrictEqual(a.pictureIndex, b.pictureIndex);
+});
+
+function cssBlock(css, selector) {
+  var escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  var match = css.match(new RegExp(escaped + "\\s*\\{([^}]+)\\}"));
+  return match ? match[1] : "";
+}
+
+function cssProp(block, name) {
+  var match = block.match(new RegExp(name + "\\s*:\\s*([^;]+)"));
+  return match ? match[1].trim() : "";
+}
+
+test("coloring page stacks fill SVG, canvas, then outline SVG", function () {
+  var html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  var page = html.match(/id="crayon-page"[\s\S]*?<\/div>/);
+  assert.ok(page, "crayon-page is missing");
+  var markup = page[0];
+  var fillsAt = markup.indexOf('id="crayon-blobs"');
+  var canvasAt = markup.indexOf('id="crayon-canvas"');
+  var linesAt = markup.indexOf('id="crayon-lines"');
+  assert.ok(fillsAt >= 0, "fill SVG is missing");
+  assert.ok(canvasAt > fillsAt, "canvas must sit above the fill SVG in markup");
+  assert.ok(linesAt > canvasAt, "outline SVG must sit above the canvas in markup");
+});
+
+test("CSS keeps crayon marks under the drawing lines", function () {
+  var css = fs.readFileSync(path.join(__dirname, "..", "styles.css"), "utf8");
+  var fillsZ = Number(cssProp(cssBlock(css, ".crayon-blobs"), "z-index"));
+  var canvasZ = Number(cssProp(cssBlock(css, ".crayon-canvas"), "z-index"));
+  var linesZ = Number(cssProp(cssBlock(css, ".crayon-lines"), "z-index"));
+  assert.ok(canvasZ > fillsZ, "canvas z-index " + canvasZ + " should be above fills " + fillsZ);
+  assert.ok(linesZ > canvasZ, "lines z-index " + linesZ + " should be above canvas " + canvasZ);
+  assert.strictEqual(cssProp(cssBlock(css, ".crayon-lines"), "pointer-events"), "none");
+  assert.strictEqual(cssProp(cssBlock(css, ".paint-blobs.crayon-blobs path"), "stroke"), "none");
 });
 
 console.log(passed + " passed, " + failed + " failed");
