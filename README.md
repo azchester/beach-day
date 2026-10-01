@@ -53,3 +53,7 @@ node test/puzzle-layout.test.js
 node test/menu.test.js
 node test/kid.test.js
 ```
+
+## License
+
+[MIT](LICENSE) — free to use, modify, and share.
